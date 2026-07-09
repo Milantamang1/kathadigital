@@ -9,12 +9,26 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "Katha Digital - Premium Cinematic Production Studio",
+    default: "Katha Digital",
     template: "%s - Katha Digital",
   },
   description:
     "Katha Digital is a premium cinematic production studio for wedding films, photography, events, original shows, music videos, brand stories, and digital media.",
   authors: [{ name: "Katha Digital" }],
+  icons: {
+    icon: [
+      {
+        url: "/katha-media/kathadigital-logo.png",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/katha-media/kathadigital-logo.png",
+        type: "image/png",
+      },
+    ],
+  },
   openGraph: {
     title: "Katha Digital - Premium Cinematic Production Studio",
     description:
