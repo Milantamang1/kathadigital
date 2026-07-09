@@ -12,6 +12,7 @@ import {
   ImageIcon,
   Inbox,
   LayoutGrid,
+  LogOut,
   Mail,
   Newspaper,
   Palette,
@@ -125,6 +126,11 @@ export function AdminShell() {
     [activeSection],
   );
 
+  async function handleLogout() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/admin/login";
+  }
+
   return (
     <div className="fixed inset-0 z-[100] flex overflow-hidden bg-[#f3efe5] text-[#17130d]">
       <aside className="hidden w-72 shrink-0 border-r border-[#2b251b] bg-[#12110c] text-[#f7f0df] lg:block">
@@ -161,6 +167,14 @@ export function AdminShell() {
             <div className="grid size-11 place-items-center rounded-lg bg-[#17130d] text-sm font-bold text-[#efbc4a] shadow-sm">
               KD
             </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Logout"
+              className="grid size-11 place-items-center rounded-lg border border-[#ddd6c8] bg-white text-[#6f665c] shadow-sm transition hover:text-[#17130d]"
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
         </header>
 

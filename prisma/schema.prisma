@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BookingStatus {
+  NEW
+  CONTACTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum MessageStatus {
+  NEW
+  READ
+  REPLIED
+  ARCHIVED
+}
+
+enum EventStatus {
+  UPCOMING
+  COMPLETED
+  CANCELLED
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  role         String   @default("admin")
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BookingInquiry {
+  id          String        @id @default(cuid())
+  name        String
+  email       String?
+  phone       String
+  service     String?
+  eventDate   DateTime?
+  location    String?
+  budget      String?
+  message     String?
+  status      BookingStatus @default(NEW)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  status    MessageStatus @default(NEW)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Service {
+  id               String        @id @default(cuid())
+  title            String
+  slug             String        @unique
+  shortDescription String?
+  fullDescription  String?
+  imageUrl         String?
+  status           ContentStatus @default(DRAFT)
+  featured         Boolean       @default(false)
+  displayOrder     Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model PortfolioProject {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  category    String
+  clientName  String?
+  eventDate   DateTime?
+  location    String?
+  description String?
+  imageUrl    String?
+  videoUrl    String?
+  status      ContentStatus @default(DRAFT)
+  featured    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Production {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  type        String?
+  description String?
+  imageUrl    String?
+  videoUrl    String?
+  episodes    Json?
+  status      ContentStatus @default(DRAFT)
+  featured    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model NewsPost {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  category    String?
+  author      String?
+  excerpt     String?
+  content     String?
+  imageUrl    String?
+  status      ContentStatus @default(DRAFT)
+  featured    Boolean       @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  type        String?
+  date        DateTime?
+  location    String?
+  description String?
+  imageUrl    String?
+  status      EventStatus @default(UPCOMING)
+  featured    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
