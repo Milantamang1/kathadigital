@@ -4,9 +4,11 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "prisma generate && prisma migrate dev --name init && next dev",
     "build": "next build",
     "start": "next start",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev --name init",
     "lint": "eslint .",
     "format": "prettier --write .",
     "seed:admin": "node prisma/seed.mjs"
