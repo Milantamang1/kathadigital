@@ -4,7 +4,8 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "prisma generate && prisma migrate dev --name init && next dev",
+    "dev": "next dev",
+    "dev:db": "prisma generate && prisma migrate dev --name init && next dev",
     "build": "next build",
     "start": "next start",
     "db:generate": "prisma generate",

@@ -1,14 +1,14 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, Mail } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,8 +34,7 @@ export function LoginForm() {
       return;
     }
 
-    router.replace(searchParams.get("next") ?? "/admin");
-    router.refresh();
+    window.location.replace(searchParams.get("next") ?? "/admin");
   }
 
   return (
@@ -73,12 +72,21 @@ export function LoginForm() {
               <Lock className="size-4 text-[#c0912f]" />
               <input
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 autoComplete="current-password"
                 className="w-full bg-transparent text-sm outline-none"
                 placeholder="Enter admin password"
               />
+              <button
+                type="button"
+                className="text-[#c0912f] transition hover:text-[#9f741f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c0912f]"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
             </span>
           </label>
 
