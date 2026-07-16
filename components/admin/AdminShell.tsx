@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   Briefcase,
@@ -52,27 +54,6 @@ const menuItems: { label: SectionKey; icon: typeof LayoutGrid }[] = [
   { label: "Settings", icon: Settings },
 ];
 
-const stats = [
-  { label: "Published Pages", value: "12", note: "Core content sections", icon: FileText },
-  { label: "New Messages", value: "18", note: "Awaiting response", icon: Inbox },
-  { label: "Booking Leads", value: "7", note: "This week", icon: CalendarDays },
-  { label: "Portfolio Items", value: "46", note: "Live projects", icon: Gauge },
-];
-
-const snapshots = [
-  { section: "Home Content", status: "Published", items: "6 blocks", updated: "Today" },
-  { section: "Services", status: "Draft review", items: "8 services", updated: "Yesterday" },
-  { section: "Portfolio", status: "Published", items: "46 items", updated: "Jun 22" },
-  { section: "News", status: "Needs draft", items: "9 posts", updated: "Jun 20" },
-];
-
-const queue = [
-  "Refresh homepage hero copy",
-  "Add recent wedding film to portfolio",
-  "Review three booking inquiries",
-  "Draft upcoming event announcement",
-];
-
 const services = [
   "Wedding Cinematography",
   "Event Coverage",
@@ -119,12 +100,85 @@ const bookings = [
   ["Studio Launch", "Brand Film", "Oct 18, 2026", "NPR 120,000"],
 ];
 
+type DashboardStat = {
+  label: "Published Pages" | "New Messages" | "Booking Leads" | "Portfolio Items";
+  value: string;
+  note: string;
+};
+
+type DashboardSnapshot = {
+  section: SectionKey;
+  status: "Published" | "Draft" | "Archived" | "Mixed";
+  itemCount: number;
+  lastUpdated: string | null;
+  href: string;
+  publishedCount: number;
+  draftCount: number;
+  archivedCount: number;
+};
+
+type DashboardPendingWork = {
+  section: SectionKey;
+  href: string;
+  draftCount: number;
+  archivedCount: number;
+};
+
+type DashboardData = {
+  stats: DashboardStat[];
+  snapshots: DashboardSnapshot[];
+  pendingWork: DashboardPendingWork[];
+};
+
+type DashboardResponse =
+  | {
+      ok: true;
+      data: DashboardData;
+    }
+  | {
+      ok: false;
+      error: {
+        message: string;
+      };
+    };
+
+const dashboardStatIcons = {
+  "Published Pages": FileText,
+  "New Messages": Inbox,
+  "Booking Leads": CalendarDays,
+  "Portfolio Items": Gauge,
+} satisfies Record<DashboardStat["label"], typeof FileText>;
+
+function sectionFromSearchParam(value: string | null): SectionKey {
+  const match = menuItems.find((item) => item.label === value);
+  return match?.label ?? "Dashboard";
+}
+
 export function AdminShell() {
-  const [activeSection, setActiveSection] = useState<SectionKey>("Dashboard");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeSection, setActiveSection] = useState<SectionKey>(() =>
+    sectionFromSearchParam(searchParams.get("section")),
+  );
   const activeMeta = useMemo(
     () => menuItems.find((item) => item.label === activeSection) ?? menuItems[0],
     [activeSection],
   );
+
+  useEffect(() => {
+    setActiveSection(sectionFromSearchParam(searchParams.get("section")));
+  }, [searchParams]);
+
+  function handleSectionSelect(section: SectionKey) {
+    setActiveSection(section);
+
+    if (section === "Dashboard") {
+      router.push("/admin");
+      return;
+    }
+
+    router.push(`/admin?section=${encodeURIComponent(section)}`);
+  }
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -135,7 +189,7 @@ export function AdminShell() {
     <div className="fixed inset-0 z-[100] flex overflow-hidden bg-[#f3efe5] text-[#17130d]">
       <aside className="hidden w-72 shrink-0 border-r border-[#2b251b] bg-[#12110c] text-[#f7f0df] lg:block">
         <BrandBlock />
-        <SidebarNav activeSection={activeSection} onSelect={setActiveSection} />
+        <SidebarNav activeSection={activeSection} onSelect={handleSectionSelect} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -179,7 +233,7 @@ export function AdminShell() {
         </header>
 
         <main className="min-h-0 flex-1 overflow-auto px-5 py-8 md:px-8">
-          <MobileNav activeSection={activeSection} onSelect={setActiveSection} />
+          <MobileNav activeSection={activeSection} onSelect={handleSectionSelect} />
           <AdminContent activeSection={activeSection} />
         </main>
       </div>
@@ -309,35 +363,153 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
 }
 
 function DashboardSection() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/admin/dashboard");
+        const payload = (await response.json().catch(() => null)) as DashboardResponse | null;
+
+        if (!payload) {
+          throw new Error("Unable to load dashboard data.");
+        }
+
+        if (!payload.ok) {
+          throw new Error(payload.error.message);
+        }
+
+        if (!response.ok) {
+          throw new Error("Unable to load dashboard data.");
+        }
+
+        if (!cancelled) {
+          setData(payload.data);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error ? loadError.message : "Unable to load dashboard data.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (isLoading) {
+    return <DashboardLoading />;
+  }
+
+  if (error) {
+    return <DashboardError message={error} />;
+  }
+
+  if (!data) {
+    return <DashboardEmpty />;
+  }
+
   return (
     <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <article
-            key={stat.label}
-            className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-medium text-[#746c61]">{stat.label}</div>
-                <div className="mt-4 text-4xl font-bold tracking-tight text-[#0e0c08]">
-                  {stat.value}
+        {data.stats.map((stat) => {
+          const Icon = dashboardStatIcons[stat.label];
+          return (
+            <article
+              key={stat.label}
+              className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-medium text-[#746c61]">{stat.label}</div>
+                  <div className="mt-4 text-4xl font-bold tracking-tight text-[#0e0c08]">
+                    {stat.value}
+                  </div>
+                </div>
+                <div className="grid size-11 place-items-center rounded-lg bg-[#f6e8c8] text-[#b98722]">
+                  <Icon className="size-5" />
                 </div>
               </div>
-              <div className="grid size-11 place-items-center rounded-lg bg-[#f6e8c8] text-[#b98722]">
-                <stat.icon className="size-5" />
-              </div>
-            </div>
-            <p className="mt-6 text-sm text-[#8c8479]">{stat.note}</p>
-          </article>
-        ))}
+              <p className="mt-6 text-sm text-[#8c8479]">{stat.note}</p>
+            </article>
+          );
+        })}
       </section>
 
       <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.48fr]">
-        <ContentSnapshot />
-        <QueueCard />
+        <ContentSnapshot snapshots={data.snapshots} />
+        <QueueCard pendingWork={data.pendingWork} />
       </section>
     </>
+  );
+}
+
+function DashboardLoading() {
+  return (
+    <>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {["Published Pages", "New Messages", "Booking Leads", "Portfolio Items"].map((label) => (
+          <article
+            key={label}
+            className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]"
+          >
+            <div className="h-4 w-32 animate-pulse rounded bg-[#eee7dc]" />
+            <div className="mt-5 h-10 w-16 animate-pulse rounded bg-[#eee7dc]" />
+            <div className="mt-6 h-4 w-40 animate-pulse rounded bg-[#f4eee4]" />
+          </article>
+        ))}
+      </section>
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.48fr]">
+        <AdminCard>
+          <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+          <div className="mt-6 h-56 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </AdminCard>
+        <AdminCard>
+          <div className="h-7 w-36 animate-pulse rounded bg-[#eee7dc]" />
+          <div className="mt-6 h-32 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </AdminCard>
+      </section>
+    </>
+  );
+}
+
+function DashboardError({ message }: { message: string }) {
+  return (
+    <AdminCard>
+      <div className="max-w-xl">
+        <h2 className="font-display text-3xl font-light">Dashboard unavailable</h2>
+        <p className="mt-3 text-sm leading-6 text-[#746c61]">{message}</p>
+      </div>
+    </AdminCard>
+  );
+}
+
+function DashboardEmpty() {
+  return (
+    <AdminCard>
+      <div className="max-w-xl">
+        <h2 className="font-display text-3xl font-light">No dashboard data yet</h2>
+        <p className="mt-3 text-sm leading-6 text-[#746c61]">
+          CMS records will appear here after content is available in the database.
+        </p>
+      </div>
+    </AdminCard>
   );
 }
 
@@ -533,43 +705,140 @@ function SimpleTable({ columns, rows }: { columns: string[]; rows: string[][] })
   );
 }
 
-function ContentSnapshot() {
+function ContentSnapshot({ snapshots }: { snapshots: DashboardSnapshot[] }) {
+  if (snapshots.length === 0) {
+    return (
+      <AdminCard>
+        <SectionHeader
+          title="Content Snapshot"
+          description="No CMS sections have database records yet."
+          action="Refresh"
+          icon={Search}
+        />
+      </AdminCard>
+    );
+  }
+
   return (
     <article className="overflow-hidden rounded-lg border border-[#ddd6c8] bg-white shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]">
       <div className="border-b border-[#e4ded3] p-6">
         <h2 className="font-display text-2xl font-light">Content Snapshot</h2>
-        <p className="mt-2 text-sm text-[#746c61]">
-          Dummy overview of CMS sections ready for future editing tools.
-        </p>
+        <p className="mt-2 text-sm text-[#746c61]">Live CMS section status from the database.</p>
       </div>
-      <SimpleTable
-        columns={["Section", "Status", "Items", "Last Updated"]}
-        rows={snapshots.map((row) => [row.section, row.status, row.items, row.updated])}
-      />
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead className="bg-[#f4f0e7] text-xs uppercase tracking-[0.2em] text-[#82786b]">
+            <tr>
+              <th className="px-5 py-4 font-bold">Section</th>
+              <th className="px-5 py-4 font-bold">Status</th>
+              <th className="px-5 py-4 font-bold">Item count</th>
+              <th className="px-5 py-4 font-bold">Last updated</th>
+              <th className="px-5 py-4 font-bold">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#e7e0d4] bg-white">
+            {snapshots.map((snapshot) => (
+              <tr key={snapshot.section}>
+                <td className="px-5 py-4 font-semibold text-[#211d16]">{snapshot.section}</td>
+                <td className="px-5 py-4 text-[#746c61]">
+                  <StatusPill status={snapshot.status} />
+                </td>
+                <td className="px-5 py-4 text-[#746c61]">{snapshot.itemCount}</td>
+                <td className="px-5 py-4 text-[#746c61]">
+                  {formatDashboardDate(snapshot.lastUpdated)}
+                </td>
+                <td className="px-5 py-4">
+                  <Link
+                    href={snapshot.href}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c] transition hover:border-[#d7a33b] hover:text-[#17130d]"
+                  >
+                    <Edit3 className="size-3.5" />
+                    Edit
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </article>
   );
 }
 
-function QueueCard() {
+function StatusPill({ status }: { status: DashboardSnapshot["status"] }) {
+  const className =
+    status === "Published"
+      ? "border-[#d8c79d] bg-[#fbf3dd] text-[#9a6d16]"
+      : status === "Draft"
+        ? "border-[#d9d1c4] bg-[#f7f4ec] text-[#746c61]"
+        : status === "Archived"
+          ? "border-[#e8d4cd] bg-[#fff7f4] text-[#9b4b35]"
+          : "border-[#d8c79d] bg-[#fff9eb] text-[#856322]";
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${className}`}>
+      {status}
+    </span>
+  );
+}
+
+function formatDashboardDate(value: string | null) {
+  if (!value) return "Not updated";
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function QueueCard({ pendingWork }: { pendingWork: DashboardPendingWork[] }) {
   return (
     <article className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]">
       <h2 className="font-display text-2xl font-light">Today's Queue</h2>
-      <p className="mt-2 text-sm text-[#746c61]">Placeholder tasks for layout preview.</p>
-      <div className="mt-6 space-y-4">
-        {queue.map((task, index) => (
-          <div
-            key={task}
-            className="flex items-center gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4"
-          >
-            <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#17130d] text-xs font-bold text-[#efbc4a]">
-              {index + 1}
-            </div>
-            <div className="text-sm font-semibold text-[#3b352c]">{task}</div>
-          </div>
-        ))}
-      </div>
+      <p className="mt-2 text-sm text-[#746c61]">Pending CMS work based on database status.</p>
+      {pendingWork.length > 0 ? (
+        <div className="mt-6 space-y-4">
+          {pendingWork.map((item, index) => (
+            <Link
+              key={item.section}
+              href={item.href}
+              className="flex items-center gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 transition hover:border-[#d7a33b] hover:bg-[#fffaf0]"
+            >
+              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#17130d] text-xs font-bold text-[#efbc4a]">
+                {index + 1}
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-[#3b352c]">{item.section}</div>
+                <div className="mt-1 text-xs text-[#746c61]">{formatPendingSummary(item)}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-6 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5">
+          <div className="text-sm font-semibold text-[#3b352c]">No pending CMS work</div>
+          <p className="mt-2 text-sm leading-6 text-[#746c61]">
+            Draft and archived records will appear here when they exist.
+          </p>
+        </div>
+      )}
     </article>
   );
+}
+
+function formatPendingSummary(item: DashboardPendingWork) {
+  const parts = [];
+
+  if (item.draftCount > 0) {
+    parts.push(`${item.draftCount} draft ${item.draftCount === 1 ? "record" : "records"}`);
+  }
+
+  if (item.archivedCount > 0) {
+    parts.push(`${item.archivedCount} archived ${item.archivedCount === 1 ? "record" : "records"}`);
+  }
+
+  return parts.join(" / ");
 }
 
 function AdminCard({ children }: { children: React.ReactNode }) {

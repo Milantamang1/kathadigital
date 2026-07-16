@@ -44,18 +44,18 @@ model AdminUser {
 }
 
 model BookingInquiry {
-  id          String        @id @default(cuid())
-  name        String
-  email       String?
-  phone       String
-  service     String?
-  eventDate   DateTime?
-  location    String?
-  budget      String?
-  message     String?
-  status      BookingStatus @default(NEW)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        String        @id @default(cuid())
+  name      String
+  email     String?
+  phone     String
+  service   String?
+  eventDate DateTime?
+  location  String?
+  budget    String?
+  message   String?
+  status    BookingStatus @default(NEW)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 model ContactMessage {
@@ -74,77 +74,106 @@ model Service {
   id               String        @id @default(cuid())
   title            String
   slug             String        @unique
+  short            String?
   shortDescription String?
   fullDescription  String?
+  image            String?
   imageUrl         String?
+  position         String?
   status           ContentStatus @default(DRAFT)
   featured         Boolean       @default(false)
   displayOrder     Int           @default(0)
+  publishedAt      DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 }
 
 model PortfolioProject {
-  id          String        @id @default(cuid())
-  title       String
-  slug        String        @unique
-  category    String
-  clientName  String?
-  eventDate   DateTime?
-  location    String?
-  description String?
-  imageUrl    String?
-  videoUrl    String?
-  status      ContentStatus @default(DRAFT)
-  featured    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  title        String
+  slug         String        @unique
+  category     String
+  clientName   String?
+  eventDate    DateTime?
+  dateLabel    String?
+  location     String?
+  desc         String?
+  description  String?
+  image        String?
+  imageUrl     String?
+  position     String?
+  videoUrl     String?
+  status       ContentStatus @default(DRAFT)
+  featured     Boolean       @default(false)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Production {
-  id          String        @id @default(cuid())
-  title       String
-  slug        String        @unique
-  type        String?
-  description String?
-  imageUrl    String?
-  videoUrl    String?
-  episodes    Json?
-  status      ContentStatus @default(DRAFT)
-  featured    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  title        String
+  slug         String        @unique
+  type         String?
+  desc         String?
+  description  String?
+  image        String?
+  imageUrl     String?
+  position     String?
+  youtubeId    String?
+  subscribeUrl String?
+  destinations Json?
+  videoUrl     String?
+  episodes     Json?
+  status       ContentStatus @default(DRAFT)
+  featured     Boolean       @default(false)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model NewsPost {
-  id          String        @id @default(cuid())
-  title       String
-  slug        String        @unique
-  category    String?
-  author      String?
-  excerpt     String?
-  content     String?
-  imageUrl    String?
-  status      ContentStatus @default(DRAFT)
-  featured    Boolean       @default(false)
-  publishedAt DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  title        String
+  slug         String        @unique
+  category     String?
+  author       String?
+  dateLabel    String?
+  excerpt      String?
+  content      String?
+  image        String?
+  imageUrl     String?
+  position     String?
+  status       ContentStatus @default(DRAFT)
+  featured     Boolean       @default(false)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Event {
-  id          String      @id @default(cuid())
-  name        String
-  slug        String      @unique
-  type        String?
-  date        DateTime?
-  location    String?
-  description String?
-  imageUrl    String?
-  status      EventStatus @default(UPCOMING)
-  featured    Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  type          String?
+  date          DateTime?
+  dateLabel     String?
+  location      String?
+  desc          String?
+  description   String?
+  image         String?
+  imageUrl      String?
+  position      String?
+  status        EventStatus   @default(UPCOMING)
+  contentStatus ContentStatus @default(PUBLISHED)
+  featured      Boolean       @default(false)
+  displayOrder  Int           @default(0)
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model SiteSetting {
@@ -153,4 +182,106 @@ model SiteSetting {
   value     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PageContent {
+  id           String        @id @default(cuid())
+  page         String
+  section      String
+  key          String
+  value        Json
+  status       ContentStatus @default(PUBLISHED)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([page, section, key])
+}
+
+model Testimonial {
+  id           String        @id @default(cuid())
+  name         String
+  role         String
+  quote        String
+  status       ContentStatus @default(PUBLISHED)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([name, role])
+}
+
+model TeamMember {
+  id           String        @id @default(cuid())
+  name         String
+  role         String
+  note         String?
+  image        String?
+  position     String?
+  status       ContentStatus @default(PUBLISHED)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([name, role])
+}
+
+model Principle {
+  id           String        @id @default(cuid())
+  eyebrow      String
+  title        String
+  text         String
+  iconKey      String?
+  status       ContentStatus @default(PUBLISHED)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([eyebrow, title])
+}
+
+model VideoItem {
+  id           String        @id @default(cuid())
+  section      String
+  youtubeId    String
+  title        String
+  type         String?
+  description  String?
+  status       ContentStatus @default(PUBLISHED)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([section, youtubeId])
+}
+
+model CategoryOption {
+  id           String        @id @default(cuid())
+  scope        String
+  label        String
+  status       ContentStatus @default(PUBLISHED)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([scope, label])
+}
+
+model NavigationItem {
+  id           String        @id @default(cuid())
+  label        String
+  to           String
+  status       ContentStatus @default(PUBLISHED)
+  displayOrder Int           @default(0)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([label, to])
 }
