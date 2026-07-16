@@ -6,6 +6,7 @@ import { Container } from "./Container";
 export function CTA({
   className,
   panelClassName,
+  eyebrow = "Let's build the frame",
   title = "Ready to make your story look unforgettable?",
   subtitle = "Bring us the moment, the brand, or the idea. We will shape it with cinematic craft, calm direction, and a polished final delivery.",
   buttonText = "Book Now",
@@ -13,6 +14,7 @@ export function CTA({
 }: {
   className?: string;
   panelClassName?: string;
+  eyebrow?: string;
   title?: string;
   subtitle?: string;
   buttonText?: string;
@@ -32,7 +34,7 @@ export function CTA({
           <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-gold/7 blur-3xl" />
           <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
             <div className="max-w-2xl">
-              <div className="eyebrow mb-4">Let's build the frame</div>
+              <div className="eyebrow mb-4">{eyebrow}</div>
               <h3 className="text-4xl md:text-6xl font-display font-light leading-[1.05]">
                 {title}
               </h3>

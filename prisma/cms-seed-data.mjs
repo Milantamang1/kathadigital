@@ -610,6 +610,121 @@ export const pageContent = [
   },
 ];
 
+export const homeContent = {
+  metadata: {
+    title: "Katha Digital - Premium Cinematic Production Studio",
+    description:
+      "Premium photography, cinematography, wedding films, productions, events, and digital media by Katha Digital.",
+    openGraph: {
+      title: "Katha Digital",
+      description:
+        "Premium cinematic stories for weddings, brands, events, and original productions.",
+    },
+  },
+  heroImg: "/katha-media/mountain-view-trip.jpeg",
+  heroAlt: "Cinematic photographer with golden bokeh",
+  eyebrow: "Katha Digital - Cinematic Production Studio",
+  title: "Premium films and photography with emotional clarity.",
+  subtitle:
+    "Wedding films, event coverage, talk shows, music videos, brand stories, and digital productions crafted with cinematic restraint and a polished studio finish.",
+  actions: [
+    { label: "Book Now", href: "/book-now", variant: "primary" },
+    { label: "View Portfolio", href: "/portfolio", variant: "secondary" },
+    { label: "Watch Films", href: "/productions", variant: "ghost" },
+  ],
+  sideLabel: "Full-service cinematic production",
+  metrics: [
+    { n: "500+", l: "Visual Stories" },
+    { n: "120+", l: "Wedding Films" },
+    { n: "8yr", l: "Production Craft" },
+  ],
+  whoWeAre: {
+    eyebrow: "Who We Are",
+    title: "Katha Digital is a production studio for",
+    emphasis: "cinematic memories, brands, and original shows",
+    subtitle:
+      "From intimate weddings and editorial portraits to talk shows, travel stories, events, music videos, and brand films, we build visual work that feels composed, emotional, and ready for every screen.",
+  },
+  servicesSection: {
+    eyebrow: "What We Do",
+    title: "Premium",
+    emphasis: "production services",
+    suffix: "for every story.",
+    subtitle:
+      "Eight disciplines, one creative team. From intimate portraits to multi-camera productions, every project is shaped with planning, direction, and a clean final finish.",
+    cardLinkText: "Learn more",
+    limit: 8,
+  },
+  selectedWorkSection: {
+    eyebrow: "Selected Work",
+    title: "Recent",
+    emphasis: "work",
+    suffix: "with presence.",
+    linkText: "View full portfolio",
+    href: "/portfolio",
+    limit: 6,
+  },
+  productionsSection: {
+    eyebrow: "Original Productions",
+    title: "Original formats built with",
+    emphasis: "cinematic rhythm",
+    suffix: ".",
+    linkText: "Watch episodes",
+    href: "/productions",
+    limit: 2,
+  },
+  youtubeSection: {
+    eyebrow: "On YouTube",
+    title: "Featured",
+    emphasis: "films",
+    suffix: ".",
+    videos: [
+      { id: "4akCjtmezHE", title: "Wedding Cinematography" },
+      { id: "Ju5HDbTcXMs", title: "Aerial Cinematography" },
+      { id: "ghe6mWFUw4c", title: "Music Video" },
+    ],
+  },
+  newsSection: {
+    eyebrow: "Latest",
+    title: "News &",
+    emphasis: "journal",
+    suffix: ".",
+    linkText: "All posts",
+    href: "/news",
+    limit: 3,
+  },
+  testimonialsSection: {
+    eyebrow: "Kind Words",
+    title: "What",
+    emphasis: "clients",
+    suffix: "say.",
+  },
+  cta: {
+    eyebrow: "Let's build the frame",
+    title: "Ready to make your story look unforgettable?",
+    subtitle:
+      "Bring us the moment, the brand, or the idea. We will shape it with cinematic craft, calm direction, and a polished final delivery.",
+    buttonText: "Book Now",
+    to: "/book-now",
+  },
+  hiddenImage: {
+    src: "/katha-media/wedding-hidden.jpg",
+    alt: "",
+  },
+  sections: {
+    hero: true,
+    whoWeAre: true,
+    services: true,
+    selectedWork: true,
+    productions: true,
+    youtube: true,
+    news: true,
+    testimonials: true,
+    cta: true,
+    hiddenImage: true,
+  },
+};
+
 export const navigationItems = [
   { to: "/", label: "Home" },
   { to: "/about", label: "About" },

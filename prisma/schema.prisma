@@ -184,6 +184,33 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 }
 
+model HomeContent {
+  id                  String        @id @default("home")
+  metadata            Json
+  heroImg             String
+  heroAlt             String
+  eyebrow             String
+  title               String
+  subtitle            String
+  actions             Json
+  sideLabel           String
+  metrics             Json
+  whoWeAre            Json
+  servicesSection     Json
+  selectedWorkSection Json
+  productionsSection  Json
+  youtubeSection      Json
+  newsSection         Json
+  testimonialsSection Json
+  cta                 Json
+  hiddenImage         Json
+  sections            Json
+  status              ContentStatus @default(PUBLISHED)
+  publishedAt         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
 model PageContent {
   id           String        @id @default(cuid())
   page         String

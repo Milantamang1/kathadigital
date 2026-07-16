@@ -6,6 +6,9 @@ import {
   slugSchema,
 } from "./validation";
 
+const requiredTextSchema = z.string().trim().min(1).max(1000);
+const positiveLimitSchema = z.coerce.number().int().min(1).max(12);
+
 export const serviceSchema = commonContentFieldsSchema.extend({
   title: z.string().trim().min(1).max(160),
   slug: slugSchema,
@@ -75,4 +78,128 @@ export const bookingInquirySchema = z.object({
   location: z.string().trim().max(180).optional(),
   budget: z.string().trim().max(120).optional(),
   message: z.string().trim().max(5000).optional(),
+});
+
+export const homeContentSchema = z.object({
+  metadata: z.object({
+    title: requiredTextSchema,
+    description: requiredTextSchema,
+    openGraph: z.object({
+      title: requiredTextSchema,
+      description: requiredTextSchema,
+    }),
+  }),
+  heroImg: mediaReferenceSchema,
+  heroAlt: z.string().trim().max(220),
+  eyebrow: requiredTextSchema,
+  title: requiredTextSchema,
+  subtitle: requiredTextSchema,
+  actions: z
+    .array(
+      z.object({
+        label: requiredTextSchema,
+        href: z.string().trim().min(1).max(120).startsWith("/"),
+        variant: z.enum(["primary", "secondary", "ghost"]),
+      }),
+    )
+    .length(3),
+  sideLabel: requiredTextSchema,
+  metrics: z
+    .array(
+      z.object({
+        n: z.string().trim().min(1).max(40),
+        l: z.string().trim().min(1).max(80),
+      }),
+    )
+    .length(3),
+  whoWeAre: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    subtitle: requiredTextSchema,
+  }),
+  servicesSection: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+    subtitle: requiredTextSchema,
+    cardLinkText: requiredTextSchema,
+    limit: positiveLimitSchema,
+  }),
+  selectedWorkSection: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+    linkText: requiredTextSchema,
+    href: z.string().trim().min(1).max(120).startsWith("/"),
+    limit: positiveLimitSchema,
+  }),
+  productionsSection: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+    linkText: requiredTextSchema,
+    href: z.string().trim().min(1).max(120).startsWith("/"),
+    limit: positiveLimitSchema,
+  }),
+  youtubeSection: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+    videos: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(40),
+          title: requiredTextSchema,
+        }),
+      )
+      .length(3),
+  }),
+  newsSection: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+    linkText: requiredTextSchema,
+    href: z.string().trim().min(1).max(120).startsWith("/"),
+    limit: positiveLimitSchema,
+  }),
+  testimonialsSection: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+  }),
+  cta: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    subtitle: requiredTextSchema,
+    buttonText: requiredTextSchema,
+    to: z.string().trim().min(1).max(120).startsWith("/"),
+  }),
+  hiddenImage: z.object({
+    src: mediaReferenceSchema,
+    alt: z.string().trim().max(220),
+  }),
+  sections: z.object({
+    hero: z.boolean(),
+    whoWeAre: z.boolean(),
+    services: z.boolean(),
+    selectedWork: z.boolean(),
+    productions: z.boolean(),
+    youtube: z.boolean(),
+    news: z.boolean(),
+    testimonials: z.boolean(),
+    cta: z.boolean(),
+    hiddenImage: z.boolean(),
+  }),
+});
+
+export const homeContentUpdateSchema = z.object({
+  status: z.enum(["draft", "published", "archived"]),
+  content: homeContentSchema,
 });

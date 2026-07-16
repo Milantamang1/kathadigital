@@ -8,6 +8,7 @@ import {
   blogCategories,
   blogPosts,
   events,
+  homeContent,
   homepageFeaturedVideos,
   navigationItems,
   pageContent,
@@ -77,6 +78,7 @@ function assertMediaReferencesExist() {
   const references = new Set();
   for (const source of [
     services,
+    homeContent,
     portfolio,
     productions,
     blogPosts,
@@ -123,6 +125,57 @@ await prisma.adminUser.upsert({
 });
 
 assertMediaReferencesExist();
+
+await prisma.homeContent.upsert({
+  where: { id: "home" },
+  update: {
+    metadata: homeContent.metadata,
+    heroImg: homeContent.heroImg,
+    heroAlt: homeContent.heroAlt,
+    eyebrow: homeContent.eyebrow,
+    title: homeContent.title,
+    subtitle: homeContent.subtitle,
+    actions: homeContent.actions,
+    sideLabel: homeContent.sideLabel,
+    metrics: homeContent.metrics,
+    whoWeAre: homeContent.whoWeAre,
+    servicesSection: homeContent.servicesSection,
+    selectedWorkSection: homeContent.selectedWorkSection,
+    productionsSection: homeContent.productionsSection,
+    youtubeSection: homeContent.youtubeSection,
+    newsSection: homeContent.newsSection,
+    testimonialsSection: homeContent.testimonialsSection,
+    cta: homeContent.cta,
+    hiddenImage: homeContent.hiddenImage,
+    sections: homeContent.sections,
+    status: "PUBLISHED",
+    publishedAt,
+  },
+  create: {
+    id: "home",
+    metadata: homeContent.metadata,
+    heroImg: homeContent.heroImg,
+    heroAlt: homeContent.heroAlt,
+    eyebrow: homeContent.eyebrow,
+    title: homeContent.title,
+    subtitle: homeContent.subtitle,
+    actions: homeContent.actions,
+    sideLabel: homeContent.sideLabel,
+    metrics: homeContent.metrics,
+    whoWeAre: homeContent.whoWeAre,
+    servicesSection: homeContent.servicesSection,
+    selectedWorkSection: homeContent.selectedWorkSection,
+    productionsSection: homeContent.productionsSection,
+    youtubeSection: homeContent.youtubeSection,
+    newsSection: homeContent.newsSection,
+    testimonialsSection: homeContent.testimonialsSection,
+    cta: homeContent.cta,
+    hiddenImage: homeContent.hiddenImage,
+    sections: homeContent.sections,
+    status: "PUBLISHED",
+    publishedAt,
+  },
+});
 
 for (const [index, service] of services.entries()) {
   await prisma.service.upsert({

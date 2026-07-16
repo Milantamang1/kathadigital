@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { HomeContentValue } from "@/lib/cms/home-content";
 import {
   Bell,
   Briefcase,
@@ -514,16 +515,647 @@ function DashboardEmpty() {
 }
 
 function HomeContentSection() {
+  const [content, setContent] = useState<HomeContentValue | null>(null);
+  const [status, setStatus] = useState<"draft" | "published" | "archived">("published");
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadHomeContent() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/admin/home-content");
+        const payload = (await response.json()) as {
+          ok: boolean;
+          data?: {
+            content: HomeContentValue;
+            status: "draft" | "published" | "archived";
+            mediaOptions: string[];
+          };
+          error?: { message: string };
+        };
+
+        if (!response.ok || !payload.ok || !payload.data) {
+          throw new Error(payload.error?.message ?? "Unable to load home content.");
+        }
+
+        if (!cancelled) {
+          setContent(payload.data.content);
+          setStatus(payload.data.status);
+          setMediaOptions(payload.data.mediaOptions);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load home content.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadHomeContent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function updateContent(mutator: (draft: HomeContentValue) => void) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = structuredClone(current) as HomeContentValue;
+      mutator(next);
+      return next;
+    });
+  }
+
+  async function handleSave() {
+    if (!content) return;
+
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/home-content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, content }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { content: HomeContentValue; status: "draft" | "published" | "archived" };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save home content.");
+      }
+
+      setContent(payload.data.content);
+      setStatus(payload.data.status);
+      setMessage("Home content saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save home content.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-52 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="h-24 animate-pulse rounded-lg bg-[#f4eee4]" />
+          ))}
+        </div>
+      </AdminCard>
+    );
+  }
+
+  if (error && !content) {
+    return (
+      <AdminCard>
+        <h2 className="font-display text-3xl font-light">Home Content</h2>
+        <p className="mt-3 text-sm leading-6 text-[#9b4b35]">{error}</p>
+      </AdminCard>
+    );
+  }
+
+  if (!content) return null;
+
   return (
-    <FormGrid
-      title="Homepage Content"
-      description="Dummy editable fields for the public homepage hero and CTA content."
-      fields={[
-        ["Hero Title", "Premium films and photography with emotional clarity."],
-        ["Subtitle", "Wedding films, event coverage, talk shows, music videos, and brand stories."],
-        ["CTA Text", "Book Now"],
-      ]}
+    <AdminCard>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="font-display text-3xl font-light">Homepage Content</h2>
+          <p className="mt-2 text-sm text-[#746c61]">
+            Edit the singleton homepage content used by the public home page.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Save className="size-4" />
+          {isSaving ? "Saving..." : "Save"}
+        </button>
+      </div>
+
+      {(message || error) && (
+        <div
+          className={`mt-5 rounded-lg border px-4 py-3 text-sm ${
+            error
+              ? "border-[#edd8d1] bg-[#fff7f4] text-[#9b4b35]"
+              : "border-[#d8c79d] bg-[#fff9eb] text-[#856322]"
+          }`}
+        >
+          {error || message}
+        </div>
+      )}
+
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
+        <HomeSelect
+          label="Status"
+          value={status}
+          options={["draft", "published", "archived"]}
+          onChange={(value) => setStatus(value as "draft" | "published" | "archived")}
+        />
+        <HomeMediaSelect
+          label="Hero Image"
+          value={content.heroImg}
+          options={mediaOptions}
+          onChange={(value) => updateContent((draft) => void (draft.heroImg = value))}
+        />
+        <HomeInput
+          label="Metadata Title"
+          value={content.metadata.title}
+          onChange={(value) => updateContent((draft) => void (draft.metadata.title = value))}
+        />
+        <HomeInput
+          label="Open Graph Title"
+          value={content.metadata.openGraph.title}
+          onChange={(value) =>
+            updateContent((draft) => void (draft.metadata.openGraph.title = value))
+          }
+        />
+        <HomeTextarea
+          label="Metadata Description"
+          value={content.metadata.description}
+          onChange={(value) => updateContent((draft) => void (draft.metadata.description = value))}
+        />
+        <HomeTextarea
+          label="Open Graph Description"
+          value={content.metadata.openGraph.description}
+          onChange={(value) =>
+            updateContent((draft) => void (draft.metadata.openGraph.description = value))
+          }
+        />
+        <HomeInput
+          label="Hero Eyebrow"
+          value={content.eyebrow}
+          onChange={(value) => updateContent((draft) => void (draft.eyebrow = value))}
+        />
+        <HomeInput
+          label="Hero Alt"
+          value={content.heroAlt}
+          onChange={(value) => updateContent((draft) => void (draft.heroAlt = value))}
+        />
+        <HomeTextarea
+          label="Hero Title"
+          value={content.title}
+          onChange={(value) => updateContent((draft) => void (draft.title = value))}
+        />
+        <HomeTextarea
+          label="Hero Subtitle"
+          value={content.subtitle}
+          onChange={(value) => updateContent((draft) => void (draft.subtitle = value))}
+        />
+        <HomeInput
+          label="Hero Side Label"
+          value={content.sideLabel}
+          onChange={(value) => updateContent((draft) => void (draft.sideLabel = value))}
+        />
+        <HomeMediaSelect
+          label="Hidden Image"
+          value={content.hiddenImage.src}
+          options={mediaOptions}
+          onChange={(value) => updateContent((draft) => void (draft.hiddenImage.src = value))}
+        />
+      </div>
+
+      <HomeSubsection title="Hero Actions">
+        {content.actions.map((action, index) => (
+          <div key={action.variant} className="grid gap-4 md:grid-cols-2">
+            <HomeInput
+              label={`Action ${index + 1} Label`}
+              value={action.label}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.actions[index].label = value))
+              }
+            />
+            <HomeInput
+              label={`Action ${index + 1} Link`}
+              value={action.href}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.actions[index].href = value))
+              }
+            />
+          </div>
+        ))}
+      </HomeSubsection>
+
+      <HomeSubsection title="Metrics">
+        {content.metrics.map((metric, index) => (
+          <div key={index} className="grid gap-4 md:grid-cols-2">
+            <HomeInput
+              label={`Metric ${index + 1} Number`}
+              value={metric.n}
+              onChange={(value) => updateContent((draft) => void (draft.metrics[index].n = value))}
+            />
+            <HomeInput
+              label={`Metric ${index + 1} Label`}
+              value={metric.l}
+              onChange={(value) => updateContent((draft) => void (draft.metrics[index].l = value))}
+            />
+          </div>
+        ))}
+      </HomeSubsection>
+
+      <HomeSubsection title="Section Copy">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Who We Are Eyebrow"
+            value={content.whoWeAre.eyebrow}
+            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.eyebrow = value))}
+          />
+          <HomeInput
+            label="Who We Are Emphasis"
+            value={content.whoWeAre.emphasis}
+            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.emphasis = value))}
+          />
+          <HomeTextarea
+            label="Who We Are Title"
+            value={content.whoWeAre.title}
+            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.title = value))}
+          />
+          <HomeTextarea
+            label="Who We Are Subtitle"
+            value={content.whoWeAre.subtitle}
+            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.subtitle = value))}
+          />
+          <HomeSectionFields
+            label="Services"
+            section={content.servicesSection}
+            onChange={(section) => updateContent((draft) => void (draft.servicesSection = section))}
+          />
+          <HomeSectionFields
+            label="Selected Work"
+            section={content.selectedWorkSection}
+            onChange={(section) =>
+              updateContent((draft) => void (draft.selectedWorkSection = section))
+            }
+          />
+          <HomeSectionFields
+            label="Productions"
+            section={content.productionsSection}
+            onChange={(section) =>
+              updateContent((draft) => void (draft.productionsSection = section))
+            }
+          />
+          <HomeSectionFields
+            label="News"
+            section={content.newsSection}
+            onChange={(section) => updateContent((draft) => void (draft.newsSection = section))}
+          />
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="YouTube Films">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="YouTube Eyebrow"
+            value={content.youtubeSection.eyebrow}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.youtubeSection.eyebrow = value))
+            }
+          />
+          <HomeInput
+            label="YouTube Title"
+            value={content.youtubeSection.title}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.youtubeSection.title = value))
+            }
+          />
+          <HomeInput
+            label="YouTube Emphasis"
+            value={content.youtubeSection.emphasis}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.youtubeSection.emphasis = value))
+            }
+          />
+          <HomeInput
+            label="YouTube Suffix"
+            value={content.youtubeSection.suffix}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.youtubeSection.suffix = value))
+            }
+          />
+          {content.youtubeSection.videos.map((video, index) => (
+            <div key={index} className="grid gap-4 md:col-span-2 md:grid-cols-2">
+              <HomeInput
+                label={`Video ${index + 1} ID`}
+                value={video.id}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.youtubeSection.videos[index].id = value))
+                }
+              />
+              <HomeInput
+                label={`Video ${index + 1} Title`}
+                value={video.title}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.youtubeSection.videos[index].title = value))
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Testimonials & CTA">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Testimonials Eyebrow"
+            value={content.testimonialsSection.eyebrow}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.testimonialsSection.eyebrow = value))
+            }
+          />
+          <HomeInput
+            label="Testimonials Title"
+            value={content.testimonialsSection.title}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.testimonialsSection.title = value))
+            }
+          />
+          <HomeInput
+            label="Testimonials Emphasis"
+            value={content.testimonialsSection.emphasis}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.testimonialsSection.emphasis = value))
+            }
+          />
+          <HomeInput
+            label="Testimonials Suffix"
+            value={content.testimonialsSection.suffix}
+            onChange={(value) =>
+              updateContent((draft) => void (draft.testimonialsSection.suffix = value))
+            }
+          />
+          <HomeInput
+            label="CTA Eyebrow"
+            value={content.cta.eyebrow}
+            onChange={(value) => updateContent((draft) => void (draft.cta.eyebrow = value))}
+          />
+          <HomeInput
+            label="CTA Button Text"
+            value={content.cta.buttonText}
+            onChange={(value) => updateContent((draft) => void (draft.cta.buttonText = value))}
+          />
+          <HomeTextarea
+            label="CTA Title"
+            value={content.cta.title}
+            onChange={(value) => updateContent((draft) => void (draft.cta.title = value))}
+          />
+          <HomeTextarea
+            label="CTA Subtitle"
+            value={content.cta.subtitle}
+            onChange={(value) => updateContent((draft) => void (draft.cta.subtitle = value))}
+          />
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Visibility">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {(Object.keys(content.sections) as Array<keyof HomeContentValue["sections"]>).map(
+            (section) => (
+              <HomeCheckbox
+                key={section}
+                label={section}
+                checked={content.sections[section]}
+                onChange={(checked) =>
+                  updateContent((draft) => void (draft.sections[section] = checked))
+                }
+              />
+            ),
+          )}
+        </div>
+      </HomeSubsection>
+    </AdminCard>
+  );
+}
+
+function HomeSubsection({ children, title }: { children: React.ReactNode; title: string }) {
+  return (
+    <div className="mt-8 border-t border-[#e4ded3] pt-6">
+      <h3 className="font-display text-2xl font-light">{title}</h3>
+      <div className="mt-5 space-y-5">{children}</div>
+    </div>
+  );
+}
+
+function HomeInput({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  value: string | number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+      />
+    </label>
+  );
+}
+
+function HomeTextarea({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block md:col-span-2">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+        {label}
+      </span>
+      <textarea
+        value={value}
+        rows={3}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full resize-none rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+      />
+    </label>
+  );
+}
+
+function HomeSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function HomeMediaSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <HomeSelect
+      label={label}
+      value={value}
+      options={options.includes(value) ? options : [value, ...options]}
+      onChange={onChange}
     />
+  );
+}
+
+function HomeCheckbox({
+  checked,
+  label,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-3 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 text-sm font-semibold text-[#3b352c]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="size-4 accent-[#d7a33b]"
+      />
+      {label}
+    </label>
+  );
+}
+
+type EditableSection =
+  | HomeContentValue["servicesSection"]
+  | HomeContentValue["selectedWorkSection"]
+  | HomeContentValue["productionsSection"]
+  | HomeContentValue["newsSection"];
+
+function HomeSectionFields<T extends EditableSection>({
+  label,
+  onChange,
+  section,
+}: {
+  label: string;
+  section: T;
+  onChange: (section: T) => void;
+}) {
+  function update(key: keyof T, value: string | number) {
+    onChange({ ...section, [key]: value } as T);
+  }
+
+  return (
+    <div className="space-y-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:col-span-2">
+      <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#b98722]">{label}</div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <HomeInput
+          label={`${label} Eyebrow`}
+          value={section.eyebrow}
+          onChange={(value) => update("eyebrow", value)}
+        />
+        <HomeInput
+          label={`${label} Title`}
+          value={section.title}
+          onChange={(value) => update("title", value)}
+        />
+        <HomeInput
+          label={`${label} Emphasis`}
+          value={section.emphasis}
+          onChange={(value) => update("emphasis", value)}
+        />
+        <HomeInput
+          label={`${label} Suffix`}
+          value={section.suffix}
+          onChange={(value) => update("suffix", value)}
+        />
+        {"subtitle" in section && (
+          <HomeTextarea
+            label={`${label} Subtitle`}
+            value={section.subtitle}
+            onChange={(value) => update("subtitle" as keyof T, value)}
+          />
+        )}
+        {"cardLinkText" in section && (
+          <HomeInput
+            label={`${label} Card Link Text`}
+            value={section.cardLinkText}
+            onChange={(value) => update("cardLinkText" as keyof T, value)}
+          />
+        )}
+        {"linkText" in section && (
+          <HomeInput
+            label={`${label} Link Text`}
+            value={section.linkText}
+            onChange={(value) => update("linkText" as keyof T, value)}
+          />
+        )}
+        {"href" in section && (
+          <HomeInput
+            label={`${label} Link`}
+            value={section.href}
+            onChange={(value) => update("href" as keyof T, value)}
+          />
+        )}
+        <HomeInput
+          label={`${label} Limit`}
+          value={section.limit}
+          onChange={(value) => update("limit", Number(value))}
+        />
+      </div>
+    </div>
   );
 }
 
