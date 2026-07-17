@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AboutContentValue } from "@/lib/cms/about-content";
 import type { HomeContentValue } from "@/lib/cms/home-content";
 import type { PortfolioProjectValue } from "@/lib/cms/portfolio";
+import type { ProductionEpisodeValue, ProductionValue } from "@/lib/cms/productions";
 import type { ServiceValue } from "@/lib/cms/services";
 import {
   Bell,
@@ -63,12 +64,6 @@ const portfolioItems = [
   ["Diva Supermodel Finale", "Events", "Published"],
   ["Studio Red", "Portraits", "Draft"],
   ["Mountain Story", "Travel", "Published"],
-];
-
-const productions = [
-  ["Katha Mero Pani", "Talk Show", "Season planning"],
-  ["Gantavya Eak Katha", "Travel Series", "Published"],
-  ["Karigar", "Documentary Series", "Draft"],
 ];
 
 const posts = [
@@ -311,14 +306,7 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
   if (activeSection === "About Content") return <AboutContentSection />;
   if (activeSection === "Services") return <ServicesContentSection />;
   if (activeSection === "Portfolio") return <PortfolioContentSection />;
-  if (activeSection === "Productions")
-    return (
-      <ProjectListSection
-        title="Productions"
-        rows={productions}
-        columns={["Title", "Type", "Status"]}
-      />
-    );
+  if (activeSection === "Productions") return <ProductionsContentSection />;
   if (activeSection === "News")
     return (
       <ProjectListSection
@@ -2062,6 +2050,590 @@ function ServicesContentSection() {
               options={["draft", "published", "archived"]}
               onChange={(value) =>
                 updateDraft((next) => void (next.status = value as ServiceValue["status"]))
+              }
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "published"))}
+              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "draft"))}
+              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+            >
+              Unpublish
+            </button>
+          </div>
+        </HomeSubsection>
+      </AdminCard>
+    </div>
+  );
+}
+
+type ProductionDraft = Omit<ProductionValue, "id" | "publishedAt" | "updatedAt"> & {
+  id?: string;
+};
+
+type ProductionsAdminResponse =
+  | {
+      ok: true;
+      data: {
+        productions: ProductionValue[];
+        mediaOptions: string[];
+      };
+    }
+  | {
+      ok: false;
+      error: { message: string };
+    };
+
+function createProductionDraft(displayOrder: number): ProductionDraft {
+  return {
+    title: "",
+    slug: "",
+    type: "",
+    desc: "",
+    description: "",
+    image: "",
+    position: "object-center",
+    youtubeId: "",
+    subscribeUrl: "https://youtube.com",
+    destinations: [],
+    episodes: [],
+    status: "draft",
+    featured: false,
+    displayOrder,
+  };
+}
+
+function emptyProductionEpisode(index: number): ProductionEpisodeValue {
+  return {
+    num: `EP ${String(index + 1).padStart(2, "0")}`,
+    title: "",
+    guest: "",
+    date: "",
+  };
+}
+
+function ProductionsContentSection() {
+  const [productions, setProductions] = useState<ProductionValue[]>([]);
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [draft, setDraft] = useState<ProductionDraft>(() => createProductionDraft(0));
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [draggedId, setDraggedId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const filteredProductions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return productions.filter((production) => {
+      const matchesSearch =
+        !query ||
+        [production.title, production.type, production.desc, production.description]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      const matchesFilter =
+        filter === "All" || production.status === filter || production.type === filter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, productions, search]);
+
+  const productionTypeOptions = useMemo(() => {
+    const types = [...new Set(productions.map((production) => production.type).filter(Boolean))];
+    return draft.type && !types.includes(draft.type) ? [draft.type, ...types] : types;
+  }, [draft.type, productions]);
+
+  async function loadProductions() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/productions");
+      const payload = (await response.json()) as ProductionsAdminResponse;
+
+      if (!response.ok) {
+        throw new Error("Unable to load productions.");
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error.message);
+      }
+
+      setProductions(payload.data.productions);
+      setMediaOptions(payload.data.mediaOptions);
+      setDraft((current) =>
+        current.id ? current : createProductionDraft(payload.data.productions.length),
+      );
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load productions.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadProductions();
+  }, []);
+
+  function updateDraft(mutator: (next: ProductionDraft) => void) {
+    setDraft((current) => {
+      const next = structuredClone(current) as ProductionDraft;
+      mutator(next);
+      return next;
+    });
+  }
+
+  function startNewProduction() {
+    setDraft(createProductionDraft(productions.length));
+    setMessage("");
+    setError("");
+  }
+
+  function editProduction(production: ProductionValue) {
+    setDraft({ ...production });
+    setMessage("");
+    setError("");
+  }
+
+  async function saveProduction() {
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const isEditing = Boolean(draft.id);
+      const response = await fetch(
+        isEditing
+          ? `/api/admin/productions/${encodeURIComponent(draft.id ?? "")}`
+          : "/api/admin/productions",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        },
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { production: ProductionValue };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save production.");
+      }
+
+      const savedProduction = payload.data.production;
+      setProductions((current) => {
+        const next = current.filter((production) => production.id !== savedProduction.id);
+        next.push(savedProduction);
+        return next.sort((a, b) => a.displayOrder - b.displayOrder);
+      });
+      setDraft({ ...savedProduction });
+      setMessage("Production saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save production.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteProduction(production: ProductionValue) {
+    const confirmed = window.confirm(`Delete "${production.title}" from Productions?`);
+    if (!confirmed) return;
+
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/productions/${encodeURIComponent(production.id)}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message ?? "Unable to delete production.");
+      }
+
+      setProductions((current) => current.filter((item) => item.id !== production.id));
+      if (draft.id === production.id) {
+        setDraft(createProductionDraft(Math.max(productions.length - 1, 0)));
+      }
+      setMessage("Production deleted.");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete production.");
+    }
+  }
+
+  async function reorderProductions(sourceId: string, targetId: string) {
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIndex = productions.findIndex((production) => production.id === sourceId);
+    const targetIndex = productions.findIndex((production) => production.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const next = [...productions];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+
+    setProductions(next.map((production, index) => ({ ...production, displayOrder: index })));
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/productions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: next.map((production) => production.id) }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { productions: ProductionValue[] };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to reorder productions.");
+      }
+
+      setProductions(payload.data.productions);
+      setMessage("Production order saved.");
+    } catch (reorderError) {
+      setError(
+        reorderError instanceof Error ? reorderError.message : "Unable to reorder productions.",
+      );
+      void loadProductions();
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
+          <div>
+            <h2 className="font-display text-3xl font-light">Productions</h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Manage original productions, videos, episodes, and upcoming formats.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNewProduction}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+          >
+            <Plus className="size-4" />
+            Add Production
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <HomeInput label="Search" value={search} onChange={setSearch} />
+          <HomeSelect
+            label="Filter"
+            value={filter}
+            options={[
+              "All",
+              "published",
+              "draft",
+              "archived",
+              ...productionTypeOptions.filter((type) => type !== "All"),
+            ]}
+            onChange={setFilter}
+          />
+        </div>
+
+        {message && (
+          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3">
+          {filteredProductions.length === 0 ? (
+            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+              No productions match this search.
+            </div>
+          ) : (
+            filteredProductions.map((production) => (
+              <article
+                key={production.id}
+                draggable
+                onDragStart={() => setDraggedId(production.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => void reorderProductions(draggedId, production.id)}
+                className={`rounded-lg border p-3 transition ${
+                  draft.id === production.id
+                    ? "border-[#d7a33b] bg-[#fff8e7]"
+                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => editProduction(production)}
+                  className="block w-full text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-14 w-16 shrink-0 place-items-center rounded-md bg-[#17130d] text-[#efbc4a]">
+                      <Video className="size-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-[#211d16]">
+                        {production.title}
+                      </div>
+                      <div className="mt-1 text-xs text-[#746c61]">
+                        {production.type} / {production.status}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => editProduction(production)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  >
+                    <Edit3 className="size-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteProduction(production)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </AdminCard>
+
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-light">
+              {draft.id ? "Edit Production" : "Add Production"}
+            </h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Keep production copy, episodes, videos, and publishing status aligned with the site.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={saveProduction}
+            disabled={isSaving}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+          >
+            <Save className="size-4" />
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+
+        <HomeSubsection title="Basic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Production Title"
+              value={draft.title}
+              onChange={(value) => updateDraft((next) => void (next.title = value))}
+            />
+            <HomeInput
+              label="Production Type"
+              value={draft.type}
+              onChange={(value) => updateDraft((next) => void (next.type = value))}
+            />
+            <HomeInput
+              label="Display Order"
+              value={draft.displayOrder}
+              onChange={(value) =>
+                updateDraft((next) => void (next.displayOrder = Number.parseInt(value, 10) || 0))
+              }
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Production Details">
+          <HomeTextarea
+            label="Page Description"
+            value={draft.desc}
+            onChange={(value) => updateDraft((next) => void (next.desc = value))}
+          />
+          <HomeTextarea
+            label="Short Description"
+            value={draft.description}
+            onChange={(value) => updateDraft((next) => void (next.description = value))}
+          />
+        </HomeSubsection>
+
+        <HomeSubsection title="Images & Videos">
+          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
+            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
+              {draft.youtubeId ? (
+                <img
+                  src={`https://i.ytimg.com/vi/${draft.youtubeId}/hqdefault.jpg`}
+                  alt=""
+                  className="aspect-video w-full rounded-md object-cover"
+                />
+              ) : draft.image ? (
+                <img
+                  src={draft.image}
+                  alt=""
+                  className={`aspect-video w-full rounded-md object-cover ${draft.position}`}
+                />
+              ) : (
+                <div className="grid aspect-video place-items-center rounded-md bg-[#17130d] text-[#efbc4a]">
+                  <Video className="size-8" />
+                </div>
+              )}
+            </div>
+            <div className="grid gap-5">
+              <HomeMediaSelect
+                label="Poster Image"
+                value={draft.image}
+                options={mediaOptions}
+                onChange={(value) => updateDraft((next) => void (next.image = value))}
+              />
+              <HomeInput
+                label="Image Position"
+                value={draft.position}
+                onChange={(value) => updateDraft((next) => void (next.position = value))}
+              />
+              <HomeInput
+                label="YouTube Video ID"
+                value={draft.youtubeId}
+                onChange={(value) => updateDraft((next) => void (next.youtubeId = value))}
+              />
+              <HomeInput
+                label="Subscribe Link"
+                value={draft.subscribeUrl}
+                onChange={(value) => updateDraft((next) => void (next.subscribeUrl = value))}
+              />
+            </div>
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Credits / Team">
+          <div className="space-y-4">
+            {draft.episodes.map((episode, index) => (
+              <div
+                key={`${episode.num}-${index}`}
+                className="grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
+              >
+                <HomeInput
+                  label={`Episode ${index + 1} Number`}
+                  value={episode.num}
+                  onChange={(value) =>
+                    updateDraft((next) => void (next.episodes[index].num = value))
+                  }
+                />
+                <HomeInput
+                  label={`Episode ${index + 1} Date`}
+                  value={episode.date}
+                  onChange={(value) =>
+                    updateDraft((next) => void (next.episodes[index].date = value))
+                  }
+                />
+                <HomeInput
+                  label={`Episode ${index + 1} Title`}
+                  value={episode.title}
+                  onChange={(value) =>
+                    updateDraft((next) => void (next.episodes[index].title = value))
+                  }
+                />
+                <HomeInput
+                  label={`Episode ${index + 1} Guest / Credit`}
+                  value={episode.guest ?? ""}
+                  onChange={(value) =>
+                    updateDraft((next) => void (next.episodes[index].guest = value))
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => updateDraft((next) => void next.episodes.splice(index, 1))}
+                  className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                >
+                  <Trash2 className="size-3.5" />
+                  Remove Episode
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              updateDraft(
+                (next) => void next.episodes.push(emptyProductionEpisode(next.episodes.length)),
+              )
+            }
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+          >
+            <Plus className="size-4" />
+            Add Episode
+          </button>
+        </HomeSubsection>
+
+        <HomeSubsection title="Display Settings">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Destinations"
+              value={draft.destinations.join(", ")}
+              onChange={(value) =>
+                updateDraft(
+                  (next) =>
+                    void (next.destinations = value
+                      .split(",")
+                      .map((item) => item.trim())
+                      .filter(Boolean)),
+                )
+              }
+            />
+            <HomeCheckbox
+              label="Featured Production"
+              checked={draft.featured}
+              onChange={(checked) => updateDraft((next) => void (next.featured = checked))}
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Publish Settings">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeSelect
+              label="Status"
+              value={draft.status}
+              options={["draft", "published", "archived"]}
+              onChange={(value) =>
+                updateDraft((next) => void (next.status = value as ProductionValue["status"]))
               }
             />
           </div>

@@ -41,14 +41,34 @@ export const portfolioProjectSchema = commonContentFieldsSchema.extend({
 
 export const productionSchema = commonContentFieldsSchema.extend({
   title: z.string().trim().min(1).max(180),
-  slug: slugSchema,
+  slug: slugSchema.optional(),
   type: z.string().trim().min(1).max(100),
+  desc: z.string().trim().min(1).max(1200),
   description: z.string().trim().min(1).max(900),
   image: optionalMediaReferenceSchema,
   position: z.string().trim().min(1).max(80).optional(),
-  youtubeId: z.string().trim().min(1).max(40).optional(),
-  episodes: z.array(z.record(z.string(), z.string())).optional(),
+  youtubeId: z.string().trim().max(40).optional().default(""),
+  subscribeUrl: z.string().trim().max(300).optional().default(""),
+  episodes: z
+    .array(
+      z.object({
+        num: z.string().trim().min(1).max(40),
+        title: z.string().trim().min(1).max(180),
+        guest: z.string().trim().max(140).optional(),
+        date: z.string().trim().min(1).max(80),
+      }),
+    )
+    .optional(),
   destinations: z.array(z.string().trim().min(1)).optional(),
+  featured: z.boolean().default(false),
+});
+
+export const productionCreateSchema = productionSchema;
+
+export const productionUpdateSchema = productionSchema;
+
+export const productionReorderSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1),
 });
 
 export const newsPostSchema = commonContentFieldsSchema.extend({
