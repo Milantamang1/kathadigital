@@ -4251,7 +4251,13 @@ function ContactMessagesSection() {
 
     try {
       const response = await fetch("/api/admin/contact-messages");
-      const payload = (await response.json()) as ContactMessagesResponse;
+      const payload = (await response.json().catch(() => null)) as ContactMessagesResponse | null;
+
+      if (!payload) {
+        throw new Error(
+          "Contact messages API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
 
       if (!response.ok) {
         throw new Error("Unable to load contact messages.");
@@ -4284,11 +4290,17 @@ function ContactMessagesSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      const payload = (await response.json()) as {
+      const payload = (await response.json().catch(() => null)) as {
         ok: boolean;
         data?: { message: ContactMessageValue };
         error?: { message: string };
-      };
+      } | null;
+
+      if (!payload) {
+        throw new Error(
+          "Contact messages API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
 
       if (!response.ok || !payload.ok || !payload.data) {
         throw new Error(payload.error?.message ?? "Unable to update message.");
@@ -4319,10 +4331,16 @@ function ContactMessagesSection() {
           method: "DELETE",
         },
       );
-      const payload = (await response.json()) as {
+      const payload = (await response.json().catch(() => null)) as {
         ok: boolean;
         error?: { message: string };
-      };
+      } | null;
+
+      if (!payload) {
+        throw new Error(
+          "Contact messages API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
 
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error?.message ?? "Unable to delete message.");
