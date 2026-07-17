@@ -11,21 +11,32 @@ const positiveLimitSchema = z.coerce.number().int().min(1).max(12);
 
 export const serviceSchema = commonContentFieldsSchema.extend({
   title: z.string().trim().min(1).max(160),
-  slug: slugSchema,
+  slug: slugSchema.optional(),
   short: z.string().trim().min(1).max(600),
   image: mediaReferenceSchema,
   position: z.string().trim().min(1).max(80),
+  featured: z.boolean().default(false),
+});
+
+export const serviceCreateSchema = serviceSchema;
+
+export const serviceUpdateSchema = serviceSchema;
+
+export const serviceReorderSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1),
 });
 
 export const portfolioProjectSchema = commonContentFieldsSchema.extend({
   title: z.string().trim().min(1).max(180),
-  slug: slugSchema,
+  slug: slugSchema.optional(),
   category: z.string().trim().min(1).max(80),
-  location: z.string().trim().min(1).max(120),
-  date: z.string().trim().min(1).max(80),
+  location: z.string().trim().max(120),
+  date: z.string().trim().max(80),
   desc: z.string().trim().min(1).max(700),
   image: mediaReferenceSchema,
   position: z.string().trim().min(1).max(80),
+  videoUrl: z.string().trim().max(300).optional().default(""),
+  featured: z.boolean().default(false),
 });
 
 export const productionSchema = commonContentFieldsSchema.extend({
@@ -288,4 +299,12 @@ export const aboutContentSchema = z.object({
 export const aboutContentUpdateSchema = z.object({
   status: z.enum(["draft", "published", "archived"]),
   content: aboutContentSchema,
+});
+
+export const portfolioProjectCreateSchema = portfolioProjectSchema;
+
+export const portfolioProjectUpdateSchema = portfolioProjectSchema;
+
+export const portfolioReorderSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1),
 });

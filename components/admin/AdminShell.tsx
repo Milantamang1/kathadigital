@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AboutContentValue } from "@/lib/cms/about-content";
 import type { HomeContentValue } from "@/lib/cms/home-content";
+import type { PortfolioProjectValue } from "@/lib/cms/portfolio";
+import type { ServiceValue } from "@/lib/cms/services";
 import {
   Bell,
   Briefcase,
@@ -54,15 +56,6 @@ const menuItems: { label: SectionKey; icon: typeof LayoutGrid }[] = [
   { label: "Contact Messages", icon: Mail },
   { label: "Booking Inquiries", icon: Users },
   { label: "Settings", icon: Settings },
-];
-
-const services = [
-  "Wedding Cinematography",
-  "Event Coverage",
-  "Brand Films",
-  "Music Videos",
-  "Talk Show Production",
-  "Portrait Sessions",
 ];
 
 const portfolioItems = [
@@ -316,15 +309,8 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
   if (activeSection === "Dashboard") return <DashboardSection />;
   if (activeSection === "Home Content") return <HomeContentSection />;
   if (activeSection === "About Content") return <AboutContentSection />;
-  if (activeSection === "Services") return <CardsSection title="Services" items={services} />;
-  if (activeSection === "Portfolio")
-    return (
-      <ProjectListSection
-        title="Portfolio"
-        rows={portfolioItems}
-        columns={["Project", "Category", "Status"]}
-      />
-    );
+  if (activeSection === "Services") return <ServicesContentSection />;
+  if (activeSection === "Portfolio") return <PortfolioContentSection />;
   if (activeSection === "Productions")
     return (
       <ProjectListSection
@@ -1652,6 +1638,948 @@ function AboutContentSection() {
         </div>
       </HomeSubsection>
     </AdminCard>
+  );
+}
+
+type PortfolioDraft = Omit<PortfolioProjectValue, "id" | "publishedAt" | "updatedAt"> & {
+  id?: string;
+};
+
+type ServiceDraft = Omit<ServiceValue, "id" | "publishedAt" | "updatedAt"> & {
+  id?: string;
+};
+
+type ServicesAdminResponse =
+  | {
+      ok: true;
+      data: {
+        services: ServiceValue[];
+        mediaOptions: string[];
+      };
+    }
+  | {
+      ok: false;
+      error: { message: string };
+    };
+
+function createServiceDraft(displayOrder: number): ServiceDraft {
+  return {
+    title: "",
+    slug: "",
+    short: "",
+    image: "/katha-media/wedding-traditional-embrace.jpeg",
+    position: "object-center",
+    status: "draft",
+    featured: false,
+    displayOrder,
+  };
+}
+
+function ServicesContentSection() {
+  const [services, setServices] = useState<ServiceValue[]>([]);
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [draft, setDraft] = useState<ServiceDraft>(() => createServiceDraft(0));
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [draggedId, setDraggedId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const filteredServices = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return services.filter((service) => {
+      const matchesSearch =
+        !query || [service.title, service.short].join(" ").toLowerCase().includes(query);
+      const matchesFilter = filter === "All" || service.status === filter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, search, services]);
+
+  async function loadServices() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/services");
+      const payload = (await response.json()) as ServicesAdminResponse;
+
+      if (!response.ok) {
+        throw new Error("Unable to load services.");
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error.message);
+      }
+
+      setServices(payload.data.services);
+      setMediaOptions(payload.data.mediaOptions);
+      setDraft((current) =>
+        current.id ? current : createServiceDraft(payload.data.services.length),
+      );
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load services.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadServices();
+  }, []);
+
+  function updateDraft(mutator: (next: ServiceDraft) => void) {
+    setDraft((current) => {
+      const next = structuredClone(current) as ServiceDraft;
+      mutator(next);
+      return next;
+    });
+  }
+
+  function startNewService() {
+    setDraft(createServiceDraft(services.length));
+    setMessage("");
+    setError("");
+  }
+
+  function editService(service: ServiceValue) {
+    setDraft({ ...service });
+    setMessage("");
+    setError("");
+  }
+
+  async function saveService() {
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const isEditing = Boolean(draft.id);
+      const response = await fetch(
+        isEditing
+          ? `/api/admin/services/${encodeURIComponent(draft.id ?? "")}`
+          : "/api/admin/services",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        },
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { service: ServiceValue };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save service.");
+      }
+
+      const savedService = payload.data.service;
+      setServices((current) => {
+        const next = current.filter((service) => service.id !== savedService.id);
+        next.push(savedService);
+        return next.sort((a, b) => a.displayOrder - b.displayOrder);
+      });
+      setDraft({ ...savedService });
+      setMessage("Service saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save service.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteService(service: ServiceValue) {
+    const confirmed = window.confirm(`Delete "${service.title}" from Services?`);
+    if (!confirmed) return;
+
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/services/${encodeURIComponent(service.id)}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message ?? "Unable to delete service.");
+      }
+
+      setServices((current) => current.filter((item) => item.id !== service.id));
+      if (draft.id === service.id) {
+        setDraft(createServiceDraft(Math.max(services.length - 1, 0)));
+      }
+      setMessage("Service deleted.");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete service.");
+    }
+  }
+
+  async function reorderServices(sourceId: string, targetId: string) {
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIndex = services.findIndex((service) => service.id === sourceId);
+    const targetIndex = services.findIndex((service) => service.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const next = [...services];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+
+    setServices(next.map((service, index) => ({ ...service, displayOrder: index })));
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/services", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: next.map((service) => service.id) }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { services: ServiceValue[] };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to reorder services.");
+      }
+
+      setServices(payload.data.services);
+      setMessage("Service order saved.");
+    } catch (reorderError) {
+      setError(
+        reorderError instanceof Error ? reorderError.message : "Unable to reorder services.",
+      );
+      void loadServices();
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
+          <div>
+            <h2 className="font-display text-3xl font-light">Services</h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Manage the services shown on the public Services page.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNewService}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+          >
+            <Plus className="size-4" />
+            Add Service
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <HomeInput label="Search" value={search} onChange={setSearch} />
+          <HomeSelect
+            label="Filter"
+            value={filter}
+            options={["All", "published", "draft", "archived"]}
+            onChange={setFilter}
+          />
+        </div>
+
+        {message && (
+          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3">
+          {filteredServices.length === 0 ? (
+            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+              No services match this search.
+            </div>
+          ) : (
+            filteredServices.map((service) => (
+              <article
+                key={service.id}
+                draggable
+                onDragStart={() => setDraggedId(service.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => void reorderServices(draggedId, service.id)}
+                className={`rounded-lg border p-3 transition ${
+                  draft.id === service.id
+                    ? "border-[#d7a33b] bg-[#fff8e7]"
+                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => editService(service)}
+                  className="block w-full text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={service.image} alt="" className="h-14 w-16 rounded-md object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-[#211d16]">
+                        {service.title}
+                      </div>
+                      <div className="mt-1 text-xs text-[#746c61]">{service.status}</div>
+                    </div>
+                  </div>
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => editService(service)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  >
+                    <Edit3 className="size-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteService(service)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </AdminCard>
+
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-light">
+              {draft.id ? "Edit Service" : "Add Service"}
+            </h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Keep service copy, imagery, display order, and publishing status accurate.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={saveService}
+            disabled={isSaving}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+          >
+            <Save className="size-4" />
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+
+        <HomeSubsection title="Basic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Service Title"
+              value={draft.title}
+              onChange={(value) => updateDraft((next) => void (next.title = value))}
+            />
+            <HomeInput
+              label="Display Order"
+              value={draft.displayOrder}
+              onChange={(value) =>
+                updateDraft((next) => void (next.displayOrder = Number.parseInt(value, 10) || 0))
+              }
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Service Details">
+          <HomeTextarea
+            label="Short Description"
+            value={draft.short}
+            onChange={(value) => updateDraft((next) => void (next.short = value))}
+          />
+        </HomeSubsection>
+
+        <HomeSubsection title="Images & Icons">
+          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
+            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
+              <img
+                src={draft.image}
+                alt=""
+                className={`aspect-[16/10] w-full rounded-md object-cover ${draft.position}`}
+              />
+            </div>
+            <div className="grid gap-5">
+              <HomeMediaSelect
+                label="Service Image"
+                value={draft.image}
+                options={mediaOptions}
+                onChange={(value) => updateDraft((next) => void (next.image = value))}
+              />
+              <HomeInput
+                label="Image Position"
+                value={draft.position}
+                onChange={(value) => updateDraft((next) => void (next.position = value))}
+              />
+            </div>
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Display Settings">
+          <HomeCheckbox
+            label="Featured Service"
+            checked={draft.featured}
+            onChange={(checked) => updateDraft((next) => void (next.featured = checked))}
+          />
+        </HomeSubsection>
+
+        <HomeSubsection title="Publish Settings">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeSelect
+              label="Status"
+              value={draft.status}
+              options={["draft", "published", "archived"]}
+              onChange={(value) =>
+                updateDraft((next) => void (next.status = value as ServiceValue["status"]))
+              }
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "published"))}
+              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "draft"))}
+              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+            >
+              Unpublish
+            </button>
+          </div>
+        </HomeSubsection>
+      </AdminCard>
+    </div>
+  );
+}
+
+type PortfolioAdminResponse =
+  | {
+      ok: true;
+      data: {
+        projects: PortfolioProjectValue[];
+        mediaOptions: string[];
+        categories: string[];
+      };
+    }
+  | {
+      ok: false;
+      error: { message: string };
+    };
+
+function createPortfolioDraft(displayOrder: number): PortfolioDraft {
+  return {
+    title: "",
+    slug: "",
+    category: "Weddings",
+    location: "",
+    date: "",
+    desc: "",
+    image: "/katha-media/wedding-proposal.jpeg",
+    position: "object-center",
+    videoUrl: "",
+    status: "draft",
+    featured: false,
+    displayOrder,
+  };
+}
+
+function PortfolioContentSection() {
+  const [projects, setProjects] = useState<PortfolioProjectValue[]>([]);
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [draft, setDraft] = useState<PortfolioDraft>(() => createPortfolioDraft(0));
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [draggedId, setDraggedId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const filteredProjects = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return projects.filter((project) => {
+      const matchesSearch =
+        !query ||
+        [project.title, project.category, project.location, project.date, project.desc]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      const matchesFilter =
+        filter === "All" || project.status === filter || project.category === filter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, projects, search]);
+
+  async function loadPortfolio() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/portfolio");
+      const payload = (await response.json()) as PortfolioAdminResponse;
+
+      if (!response.ok) {
+        throw new Error("Unable to load portfolio projects.");
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error.message);
+      }
+
+      setProjects(payload.data.projects);
+      setMediaOptions(payload.data.mediaOptions);
+      setCategories(payload.data.categories);
+      setDraft((current) =>
+        current.id ? current : createPortfolioDraft(payload.data.projects.length),
+      );
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error ? loadError.message : "Unable to load portfolio projects.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadPortfolio();
+  }, []);
+
+  function updateDraft(mutator: (next: PortfolioDraft) => void) {
+    setDraft((current) => {
+      const next = structuredClone(current) as PortfolioDraft;
+      mutator(next);
+      return next;
+    });
+  }
+
+  function startNewProject() {
+    setDraft(createPortfolioDraft(projects.length));
+    setMessage("");
+    setError("");
+  }
+
+  function editProject(project: PortfolioProjectValue) {
+    setDraft({ ...project });
+    setMessage("");
+    setError("");
+  }
+
+  async function saveProject() {
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const isEditing = Boolean(draft.id);
+      const response = await fetch(
+        isEditing
+          ? `/api/admin/portfolio/${encodeURIComponent(draft.id ?? "")}`
+          : "/api/admin/portfolio",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        },
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { project: PortfolioProjectValue };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save portfolio project.");
+      }
+
+      const savedProject = payload.data.project;
+      setProjects((current) => {
+        const next = current.filter((project) => project.id !== savedProject.id);
+        next.push(savedProject);
+        return next.sort((a, b) => a.displayOrder - b.displayOrder);
+      });
+      setDraft({ ...savedProject });
+      setMessage("Portfolio project saved.");
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : "Unable to save portfolio project.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteProject(project: PortfolioProjectValue) {
+    const confirmed = window.confirm(`Delete "${project.title}" from Portfolio?`);
+    if (!confirmed) return;
+
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/portfolio/${encodeURIComponent(project.id)}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message ?? "Unable to delete portfolio project.");
+      }
+
+      setProjects((current) => current.filter((item) => item.id !== project.id));
+      if (draft.id === project.id) {
+        setDraft(createPortfolioDraft(Math.max(projects.length - 1, 0)));
+      }
+      setMessage("Portfolio project deleted.");
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : "Unable to delete portfolio project.",
+      );
+    }
+  }
+
+  async function reorderProjects(sourceId: string, targetId: string) {
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIndex = projects.findIndex((project) => project.id === sourceId);
+    const targetIndex = projects.findIndex((project) => project.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const next = [...projects];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+
+    setProjects(next.map((project, index) => ({ ...project, displayOrder: index })));
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/portfolio", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: next.map((project) => project.id) }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { projects: PortfolioProjectValue[] };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to reorder portfolio projects.");
+      }
+
+      setProjects(payload.data.projects);
+      setMessage("Portfolio order saved.");
+    } catch (reorderError) {
+      setError(
+        reorderError instanceof Error
+          ? reorderError.message
+          : "Unable to reorder portfolio projects.",
+      );
+      void loadPortfolio();
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
+          <div>
+            <h2 className="font-display text-3xl font-light">Portfolio</h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Manage published portfolio projects shown on the public Portfolio page.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNewProject}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+          >
+            <Plus className="size-4" />
+            Add Project
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <HomeInput label="Search" value={search} onChange={setSearch} />
+          <HomeSelect
+            label="Filter"
+            value={filter}
+            options={[
+              "All",
+              "published",
+              "draft",
+              "archived",
+              ...categories.filter((item) => item !== "All"),
+            ]}
+            onChange={setFilter}
+          />
+        </div>
+
+        {message && (
+          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3">
+          {filteredProjects.length === 0 ? (
+            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+              No portfolio projects match this search.
+            </div>
+          ) : (
+            filteredProjects.map((project) => (
+              <article
+                key={project.id}
+                draggable
+                onDragStart={() => setDraggedId(project.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => void reorderProjects(draggedId, project.id)}
+                className={`rounded-lg border p-3 transition ${
+                  draft.id === project.id
+                    ? "border-[#d7a33b] bg-[#fff8e7]"
+                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => editProject(project)}
+                  className="block w-full text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={project.image} alt="" className="h-14 w-16 rounded-md object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-[#211d16]">
+                        {project.title}
+                      </div>
+                      <div className="mt-1 text-xs text-[#746c61]">
+                        {project.category} / {project.status}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => editProject(project)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  >
+                    <Edit3 className="size-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteProject(project)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </AdminCard>
+
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-light">
+              {draft.id ? "Edit Project" : "Add Project"}
+            </h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Keep text, images, status, and ordering aligned with the public portfolio.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={saveProject}
+            disabled={isSaving}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+          >
+            <Save className="size-4" />
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+
+        <HomeSubsection title="Basic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Title"
+              value={draft.title}
+              onChange={(value) => updateDraft((next) => void (next.title = value))}
+            />
+            <HomeInput
+              label="Slug"
+              value={draft.slug}
+              onChange={(value) => updateDraft((next) => void (next.slug = value))}
+            />
+            <HomeSelect
+              label="Category"
+              value={draft.category}
+              options={
+                categories.includes(draft.category) ? categories : [draft.category, ...categories]
+              }
+              onChange={(value) => updateDraft((next) => void (next.category = value))}
+            />
+            <HomeInput
+              label="Display Order"
+              value={draft.displayOrder}
+              onChange={(value) =>
+                updateDraft((next) => void (next.displayOrder = Number.parseInt(value, 10) || 0))
+              }
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Project Details">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Location"
+              value={draft.location}
+              onChange={(value) => updateDraft((next) => void (next.location = value))}
+            />
+            <HomeInput
+              label="Date"
+              value={draft.date}
+              onChange={(value) => updateDraft((next) => void (next.date = value))}
+            />
+            <HomeTextarea
+              label="Description"
+              value={draft.desc}
+              onChange={(value) => updateDraft((next) => void (next.desc = value))}
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Images & Media">
+          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
+            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
+              <img
+                src={draft.image}
+                alt=""
+                className={`aspect-[4/3] w-full rounded-md object-cover ${draft.position}`}
+              />
+            </div>
+            <div className="grid gap-5">
+              <HomeMediaSelect
+                label="Image"
+                value={draft.image}
+                options={mediaOptions}
+                onChange={(value) => updateDraft((next) => void (next.image = value))}
+              />
+              <HomeInput
+                label="Image Position"
+                value={draft.position}
+                onChange={(value) => updateDraft((next) => void (next.position = value))}
+              />
+            </div>
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Links">
+          <HomeInput
+            label="Video URL"
+            value={draft.videoUrl}
+            onChange={(value) => updateDraft((next) => void (next.videoUrl = value))}
+          />
+        </HomeSubsection>
+
+        <HomeSubsection title="Publish Settings">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeSelect
+              label="Status"
+              value={draft.status}
+              options={["draft", "published", "archived"]}
+              onChange={(value) =>
+                updateDraft((next) => void (next.status = value as PortfolioProjectValue["status"]))
+              }
+            />
+            <HomeCheckbox
+              label="Featured Project"
+              checked={draft.featured}
+              onChange={(checked) => updateDraft((next) => void (next.featured = checked))}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "published"))}
+              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "draft"))}
+              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+            >
+              Unpublish
+            </button>
+          </div>
+        </HomeSubsection>
+      </AdminCard>
+    </div>
   );
 }
 

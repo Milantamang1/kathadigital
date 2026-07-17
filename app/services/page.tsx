@@ -3,7 +3,7 @@ import Image from "next/image";
 import { ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { PageHero, Section } from "@/components/site/Section";
 import { CTA } from "@/components/site/CTA";
-import { services } from "@/lib/site-data";
+import { getPublishedServices } from "@/lib/cms/services";
 
 export const metadata = {
   title: "Services",
@@ -15,7 +15,11 @@ export const metadata = {
   },
 };
 
-export default function ServicesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ServicesPage() {
+  const services = await getPublishedServices();
+
   return (
     <>
       <PageHero

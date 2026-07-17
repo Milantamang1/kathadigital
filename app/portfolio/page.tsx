@@ -3,10 +3,8 @@ import { ArrowUpRight } from "lucide-react";
 import { Section } from "@/components/site/Section";
 import { CTA } from "@/components/site/CTA";
 import { VideoGrid } from "@/components/site/VideoCard";
-import { portfolio, youtubeVideos } from "@/lib/site-data";
-
-const featuredProject = portfolio[1];
-const galleryProjects = portfolio;
+import { getPortfolioVideos, getPublishedPortfolioProjects } from "@/lib/cms/portfolio";
+import type { PortfolioProjectValue } from "@/lib/cms/portfolio";
 
 const portfolioTabs = [
   "All",
@@ -28,7 +26,15 @@ export const metadata = {
   },
 };
 
-function FeaturedProjectCard() {
+export const dynamic = "force-dynamic";
+
+function FeaturedProjectCard({
+  featuredProject,
+  thumbnailProjects,
+}: {
+  featuredProject: PortfolioProjectValue;
+  thumbnailProjects: PortfolioProjectValue[];
+}) {
   return (
     <article className="premium-panel group overflow-hidden rounded-[2rem] p-3 ring-1 ring-white/5">
       <div className="relative aspect-[4/3] overflow-hidden rounded-[1.45rem] bg-ink md:aspect-[16/12] lg:aspect-[4/3]">
@@ -59,7 +65,7 @@ function FeaturedProjectCard() {
       </div>
       <div className="grid gap-3 px-1 pb-1 pt-3 sm:grid-cols-[1fr_auto] sm:items-center">
         <div className="flex gap-2">
-          {[portfolio[0], portfolio[6]].map((item) => (
+          {thumbnailProjects.map((item) => (
             <div
               key={item.title}
               className="relative h-16 w-20 overflow-hidden rounded-xl border border-white/10 bg-ink sm:h-20 sm:w-28"
@@ -85,7 +91,7 @@ function FeaturedProjectCard() {
   );
 }
 
-function ProjectCard({ item, lead = false }: { item: (typeof portfolio)[number]; lead?: boolean }) {
+function ProjectCard({ item, lead = false }: { item: PortfolioProjectValue; lead?: boolean }) {
   return (
     <article
       className={`premium-panel group flex h-full flex-col overflow-hidden rounded-[1.5rem] p-2.5 ring-1 ring-white/5 transition-all duration-300 hover:-translate-y-1 hover:border-gold/45 ${
@@ -142,7 +148,15 @@ function ProjectCard({ item, lead = false }: { item: (typeof portfolio)[number];
   );
 }
 
-export default function PortfolioPage() {
+export default async function PortfolioPage() {
+  const [galleryProjects, videos] = await Promise.all([
+    getPublishedPortfolioProjects(),
+    getPortfolioVideos(),
+  ]);
+  const featuredProject =
+    galleryProjects.find((project) => project.featured) ?? galleryProjects[1] ?? galleryProjects[0];
+  const thumbnailProjects = [galleryProjects[0], galleryProjects[6]].filter(Boolean);
+
   return (
     <>
       <section className="relative isolate overflow-hidden border-b border-border/55 pt-34 pb-14 md:pt-40 md:pb-20">
@@ -177,7 +191,12 @@ export default function PortfolioPage() {
               </div>
             </div>
 
-            <FeaturedProjectCard />
+            {featuredProject && (
+              <FeaturedProjectCard
+                featuredProject={featuredProject}
+                thumbnailProjects={thumbnailProjects}
+              />
+            )}
           </div>
         </div>
       </section>
@@ -245,7 +264,7 @@ export default function PortfolioPage() {
             audiences who expect polish on every screen.
           </p>
         </div>
-        <VideoGrid videos={youtubeVideos} />
+        <VideoGrid videos={videos} />
       </Section>
 
       <CTA
