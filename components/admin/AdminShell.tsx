@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AboutContentValue } from "@/lib/cms/about-content";
 import type { HomeContentValue } from "@/lib/cms/home-content";
+import type { NewsPostValue } from "@/lib/cms/news";
 import type { PortfolioProjectValue } from "@/lib/cms/portfolio";
 import type { ProductionEpisodeValue, ProductionValue } from "@/lib/cms/productions";
 import type { ServiceValue } from "@/lib/cms/services";
@@ -64,12 +65,6 @@ const portfolioItems = [
   ["Diva Supermodel Finale", "Events", "Published"],
   ["Studio Red", "Portraits", "Draft"],
   ["Mountain Story", "Travel", "Published"],
-];
-
-const posts = [
-  ["How to Prepare for Your Wedding Photoshoot", "Wedding Tips", "Published"],
-  ["Behind the Scenes of Katha Mero Pani", "Media", "Draft"],
-  ["Travel Storytelling Through Video", "Travel Stories", "Published"],
 ];
 
 const events = [
@@ -307,14 +302,7 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
   if (activeSection === "Services") return <ServicesContentSection />;
   if (activeSection === "Portfolio") return <PortfolioContentSection />;
   if (activeSection === "Productions") return <ProductionsContentSection />;
-  if (activeSection === "News")
-    return (
-      <ProjectListSection
-        title="News Posts"
-        rows={posts}
-        columns={["Title", "Category", "Status"]}
-      />
-    );
+  if (activeSection === "News") return <NewsContentSection />;
   if (activeSection === "Events")
     return (
       <ProjectListSection title="Events" rows={events} columns={["Event", "Date", "Status"]} />
@@ -2634,6 +2622,522 @@ function ProductionsContentSection() {
               options={["draft", "published", "archived"]}
               onChange={(value) =>
                 updateDraft((next) => void (next.status = value as ProductionValue["status"]))
+              }
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "published"))}
+              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "draft"))}
+              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+            >
+              Unpublish
+            </button>
+          </div>
+        </HomeSubsection>
+      </AdminCard>
+    </div>
+  );
+}
+
+type NewsDraft = Omit<NewsPostValue, "id" | "publishedAt" | "updatedAt"> & {
+  id?: string;
+};
+
+type NewsAdminResponse =
+  | {
+      ok: true;
+      data: {
+        posts: NewsPostValue[];
+        mediaOptions: string[];
+        categories: string[];
+      };
+    }
+  | {
+      ok: false;
+      error: { message: string };
+    };
+
+function createNewsDraft(displayOrder: number): NewsDraft {
+  return {
+    title: "",
+    slug: "",
+    category: "Photography",
+    date: "",
+    author: "Editorial",
+    excerpt: "",
+    content: "",
+    image: "/katha-media/wedding-traditional-embrace.jpeg",
+    position: "object-center",
+    status: "draft",
+    featured: false,
+    displayOrder,
+  };
+}
+
+function NewsContentSection() {
+  const [posts, setPosts] = useState<NewsPostValue[]>([]);
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [draft, setDraft] = useState<NewsDraft>(() => createNewsDraft(0));
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [draggedId, setDraggedId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const filteredPosts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return posts.filter((post) => {
+      const matchesSearch =
+        !query ||
+        [post.title, post.category, post.author, post.excerpt, post.content]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      const matchesFilter = filter === "All" || post.status === filter || post.category === filter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, posts, search]);
+
+  async function loadNews() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/news");
+      const payload = (await response.json()) as NewsAdminResponse;
+
+      if (!response.ok) {
+        throw new Error("Unable to load news posts.");
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error.message);
+      }
+
+      setPosts(payload.data.posts);
+      setMediaOptions(payload.data.mediaOptions);
+      setCategories(payload.data.categories);
+      setDraft((current) => (current.id ? current : createNewsDraft(payload.data.posts.length)));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load news posts.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadNews();
+  }, []);
+
+  function updateDraft(mutator: (next: NewsDraft) => void) {
+    setDraft((current) => {
+      const next = structuredClone(current) as NewsDraft;
+      mutator(next);
+      return next;
+    });
+  }
+
+  function startNewPost() {
+    setDraft(createNewsDraft(posts.length));
+    setIsPreviewOpen(false);
+    setMessage("");
+    setError("");
+  }
+
+  function editPost(post: NewsPostValue) {
+    setDraft({ ...post });
+    setIsPreviewOpen(false);
+    setMessage("");
+    setError("");
+  }
+
+  async function savePost() {
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const isEditing = Boolean(draft.id);
+      const response = await fetch(
+        isEditing ? `/api/admin/news/${encodeURIComponent(draft.id ?? "")}` : "/api/admin/news",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        },
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { post: NewsPostValue };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save news post.");
+      }
+
+      const savedPost = payload.data.post;
+      setPosts((current) => {
+        const next = current.filter((post) => post.id !== savedPost.id);
+        next.push(savedPost);
+        return next.sort((a, b) => a.displayOrder - b.displayOrder);
+      });
+      setDraft({ ...savedPost });
+      setMessage("News post saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save news post.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deletePost(post: NewsPostValue) {
+    const confirmed = window.confirm(`Delete "${post.title}" from News?`);
+    if (!confirmed) return;
+
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/news/${encodeURIComponent(post.id)}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message ?? "Unable to delete news post.");
+      }
+
+      setPosts((current) => current.filter((item) => item.id !== post.id));
+      if (draft.id === post.id) {
+        setDraft(createNewsDraft(Math.max(posts.length - 1, 0)));
+      }
+      setMessage("News post deleted.");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete news post.");
+    }
+  }
+
+  async function reorderPosts(sourceId: string, targetId: string) {
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIndex = posts.findIndex((post) => post.id === sourceId);
+    const targetIndex = posts.findIndex((post) => post.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const next = [...posts];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+
+    setPosts(next.map((post, index) => ({ ...post, displayOrder: index })));
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/news", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: next.map((post) => post.id) }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { posts: NewsPostValue[] };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to reorder news posts.");
+      }
+
+      setPosts(payload.data.posts);
+      setMessage("News order saved.");
+    } catch (reorderError) {
+      setError(
+        reorderError instanceof Error ? reorderError.message : "Unable to reorder news posts.",
+      );
+      void loadNews();
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
+          <div>
+            <h2 className="font-display text-3xl font-light">News</h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Manage journal posts shown on the public News page.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNewPost}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+          >
+            <Plus className="size-4" />
+            Add Post
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <HomeInput label="Search" value={search} onChange={setSearch} />
+          <HomeSelect
+            label="Filter"
+            value={filter}
+            options={[
+              "All",
+              "published",
+              "draft",
+              "archived",
+              ...categories.filter((item) => item !== "All"),
+            ]}
+            onChange={setFilter}
+          />
+        </div>
+
+        {message && (
+          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3">
+          {filteredPosts.length === 0 ? (
+            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+              No news posts match this search.
+            </div>
+          ) : (
+            filteredPosts.map((post) => (
+              <article
+                key={post.id}
+                draggable
+                onDragStart={() => setDraggedId(post.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => void reorderPosts(draggedId, post.id)}
+                className={`rounded-lg border p-3 transition ${
+                  draft.id === post.id
+                    ? "border-[#d7a33b] bg-[#fff8e7]"
+                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => editPost(post)}
+                  className="block w-full text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={post.image} alt="" className="h-14 w-16 rounded-md object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-[#211d16]">{post.title}</div>
+                      <div className="mt-1 text-xs text-[#746c61]">
+                        {post.category} / {post.status}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => editPost(post)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  >
+                    <Edit3 className="size-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deletePost(post)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </AdminCard>
+
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-light">
+              {draft.id ? "Edit News Post" : "Add News Post"}
+            </h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Keep titles, excerpts, categories, images, and publishing status accurate.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen((current) => !current)}
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+            >
+              <Search className="size-4" />
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={savePost}
+              disabled={isSaving}
+              className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+            >
+              <Save className="size-4" />
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+
+        {isPreviewOpen && (
+          <div className="mt-6 overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2]">
+            <img
+              src={draft.image}
+              alt=""
+              className={`aspect-[16/8] w-full object-cover ${draft.position}`}
+            />
+            <div className="p-5">
+              <div className="text-xs uppercase tracking-[0.2em] text-[#b98722]">
+                {draft.category}
+              </div>
+              <h3 className="mt-3 font-display text-3xl font-light">
+                {draft.title || "Untitled post"}
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-[#746c61]">{draft.excerpt}</p>
+              <div className="mt-4 flex flex-wrap gap-x-3 text-xs uppercase tracking-widest text-[#8c8479]">
+                <span>{draft.author}</span>
+                <span>{draft.date}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <HomeSubsection title="Basic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Title"
+              value={draft.title}
+              onChange={(value) => updateDraft((next) => void (next.title = value))}
+            />
+            <HomeInput
+              label="Author"
+              value={draft.author}
+              onChange={(value) => updateDraft((next) => void (next.author = value))}
+            />
+            <HomeInput
+              label="Date"
+              value={draft.date}
+              onChange={(value) => updateDraft((next) => void (next.date = value))}
+            />
+            <HomeInput
+              label="Display Order"
+              value={draft.displayOrder}
+              onChange={(value) =>
+                updateDraft((next) => void (next.displayOrder = Number.parseInt(value, 10) || 0))
+              }
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="News Content">
+          <HomeTextarea
+            label="Excerpt"
+            value={draft.excerpt}
+            onChange={(value) => updateDraft((next) => void (next.excerpt = value))}
+          />
+          <HomeTextarea
+            label="Article Content"
+            value={draft.content}
+            onChange={(value) => updateDraft((next) => void (next.content = value))}
+          />
+        </HomeSubsection>
+
+        <HomeSubsection title="Images & Media">
+          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
+            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
+              <img
+                src={draft.image}
+                alt=""
+                className={`aspect-[4/3] w-full rounded-md object-cover ${draft.position}`}
+              />
+            </div>
+            <div className="grid gap-5">
+              <HomeMediaSelect
+                label="Image"
+                value={draft.image}
+                options={mediaOptions}
+                onChange={(value) => updateDraft((next) => void (next.image = value))}
+              />
+              <HomeInput
+                label="Image Position"
+                value={draft.position}
+                onChange={(value) => updateDraft((next) => void (next.position = value))}
+              />
+            </div>
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Category & Tags">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeSelect
+              label="Category"
+              value={draft.category}
+              options={
+                categories.includes(draft.category) ? categories : [draft.category, ...categories]
+              }
+              onChange={(value) => updateDraft((next) => void (next.category = value))}
+            />
+            <HomeCheckbox
+              label="Featured Post"
+              checked={draft.featured}
+              onChange={(checked) => updateDraft((next) => void (next.featured = checked))}
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Publish Settings">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeSelect
+              label="Status"
+              value={draft.status}
+              options={["draft", "published", "archived"]}
+              onChange={(value) =>
+                updateDraft((next) => void (next.status = value as NewsPostValue["status"]))
               }
             />
           </div>

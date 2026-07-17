@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import { PageHero, Section } from "@/components/site/Section";
-import { blogPosts } from "@/lib/site-data";
+import { getPublishedNewsPosts } from "@/lib/cms/news";
 
 export const metadata = {
   title: "News & Blog",
@@ -13,8 +13,11 @@ export const metadata = {
   },
 };
 
-export default function NewsPage() {
-  const [featured, ...rest] = blogPosts;
+export const dynamic = "force-dynamic";
+
+export default async function NewsPage() {
+  const posts = await getPublishedNewsPosts();
+  const [featured, ...rest] = posts;
 
   return (
     <>

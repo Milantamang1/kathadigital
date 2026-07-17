@@ -73,13 +73,23 @@ export const productionReorderSchema = z.object({
 
 export const newsPostSchema = commonContentFieldsSchema.extend({
   title: z.string().trim().min(1).max(180),
-  slug: slugSchema,
+  slug: slugSchema.optional(),
   category: z.string().trim().min(1).max(80),
   date: z.string().trim().min(1).max(80),
   author: z.string().trim().min(1).max(120),
   excerpt: z.string().trim().min(1).max(800),
+  content: z.string().trim().max(5000).optional().default(""),
   image: mediaReferenceSchema,
   position: z.string().trim().min(1).max(80),
+  featured: z.boolean().default(false),
+});
+
+export const newsPostCreateSchema = newsPostSchema;
+
+export const newsPostUpdateSchema = newsPostSchema;
+
+export const newsReorderSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1),
 });
 
 export const eventSchema = commonContentFieldsSchema.extend({
