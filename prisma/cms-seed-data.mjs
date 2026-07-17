@@ -725,6 +725,86 @@ export const homeContent = {
   },
 };
 
+export const aboutContent = {
+  metadata: {
+    title: "About",
+    description:
+      "Meet Katha Digital, a creative media studio for photography, cinematography, events, productions, and digital storytelling.",
+    openGraph: {
+      title: "About Katha Digital",
+      description:
+        "A creative media team built around thoughtful planning, cinematic craft, and honest visual storytelling.",
+    },
+  },
+  hero: {
+    eyebrow: "About",
+    title: "About",
+    emphasis: "Katha Digital",
+    subtitle:
+      "A cinematic media studio for people, brands, events, and stories that deserve to be remembered with precision and feeling.",
+  },
+  studio: {
+    eyebrow: "Who we are",
+    title:
+      "We transform real moments into visual stories with emotional intelligence, clean direction, and cinematic polish.",
+    paragraphs: [
+      "Katha Digital works across weddings, events, commercial shoots, documentaries, talk shows, travel stories, music videos, and social campaigns. The format changes, but the intention stays the same: understand the story before touching the camera.",
+      "Our team combines planning, direction, photography, cinematography, editing, and delivery into one focused workflow, so every project feels calm for the client and considered on screen.",
+    ],
+    steps: [
+      ["01", "Plan the story"],
+      ["02", "Capture with care"],
+      ["03", "Deliver with polish"],
+    ],
+    image: "/katha-media/founder.jpg",
+    imageAlt: "Katha Digital production moment",
+    imageBadge: "Photography, film, and digital production",
+  },
+  principles,
+  founder: {
+    eyebrow: "From the Founder",
+    title: "A note from",
+    emphasis: "Sunil Shrestha",
+    suffix: ".",
+    image: "/katha-media/sunil-shrestha.jpg",
+    imageAlt: "Sunil Shrestha",
+    quote:
+      "A camera can record what happened, but a thoughtful team can preserve what it felt like. That is the standard we bring to every wedding, event, interview, brand film, music video, and documentary we create.",
+    bullets: [
+      "Clear communication before every shoot",
+      "Calm direction for natural on-camera moments",
+      "Cinematic editing with emotional rhythm",
+      "Delivery prepared for web, social, and archive",
+    ],
+    name: "Sunil Shrestha",
+    role: "Founder - Photographer & Cinematographer",
+  },
+  team: {
+    eyebrow: "The Team",
+    title: "The",
+    emphasis: "people",
+    suffix: "behind the lens.",
+    subtitle: "A compact crew with clear roles, steady communication, and a shared eye for story.",
+    members: teamMembers,
+  },
+  cta: {
+    eyebrow: "Let's build the frame",
+    title: "Ready to make your story look unforgettable?",
+    subtitle:
+      "Bring us the moment, the brand, or the idea. We will shape it with cinematic craft, calm direction, and a polished final delivery.",
+    buttonText: "Book Now",
+    to: "/book-now",
+  },
+  sections: {
+    hero: true,
+    studio: true,
+    principles: true,
+    founder: true,
+    team: true,
+    cta: true,
+  },
+};
+
 export const navigationItems = [
   { to: "/", label: "Home" },
   { to: "/about", label: "About" },

@@ -5,6 +5,7 @@ import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import {
+  aboutContent,
   blogCategories,
   blogPosts,
   events,
@@ -79,6 +80,7 @@ function assertMediaReferencesExist() {
   for (const source of [
     services,
     homeContent,
+    aboutContent,
     portfolio,
     productions,
     blogPosts,
@@ -172,6 +174,35 @@ await prisma.homeContent.upsert({
     cta: homeContent.cta,
     hiddenImage: homeContent.hiddenImage,
     sections: homeContent.sections,
+    status: "PUBLISHED",
+    publishedAt,
+  },
+});
+
+await prisma.aboutContent.upsert({
+  where: { id: "about" },
+  update: {
+    metadata: aboutContent.metadata,
+    hero: aboutContent.hero,
+    studio: aboutContent.studio,
+    principles: aboutContent.principles,
+    founder: aboutContent.founder,
+    team: aboutContent.team,
+    cta: aboutContent.cta,
+    sections: aboutContent.sections,
+    status: "PUBLISHED",
+    publishedAt,
+  },
+  create: {
+    id: "about",
+    metadata: aboutContent.metadata,
+    hero: aboutContent.hero,
+    studio: aboutContent.studio,
+    principles: aboutContent.principles,
+    founder: aboutContent.founder,
+    team: aboutContent.team,
+    cta: aboutContent.cta,
+    sections: aboutContent.sections,
     status: "PUBLISHED",
     publishedAt,
   },

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { AboutContentValue } from "@/lib/cms/about-content";
 import type { HomeContentValue } from "@/lib/cms/home-content";
 import {
   Bell,
@@ -1160,25 +1161,497 @@ function HomeSectionFields<T extends EditableSection>({
 }
 
 function AboutContentSection() {
+  const [content, setContent] = useState<AboutContentValue | null>(null);
+  const [status, setStatus] = useState<"draft" | "published" | "archived">("published");
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAboutContent() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/admin/about-content");
+        const payload = (await response.json()) as {
+          ok: boolean;
+          data?: {
+            content: AboutContentValue;
+            status: "draft" | "published" | "archived";
+            mediaOptions: string[];
+          };
+          error?: { message: string };
+        };
+
+        if (!response.ok || !payload.ok || !payload.data) {
+          throw new Error(payload.error?.message ?? "Unable to load about content.");
+        }
+
+        if (!cancelled) {
+          setContent(payload.data.content);
+          setStatus(payload.data.status);
+          setMediaOptions(payload.data.mediaOptions);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error ? loadError.message : "Unable to load about content.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadAboutContent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function updateContent(mutator: (draft: AboutContentValue) => void) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = structuredClone(current) as AboutContentValue;
+      mutator(next);
+      return next;
+    });
+  }
+
+  async function handleSave() {
+    if (!content) return;
+
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/about-content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, content }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { content: AboutContentValue; status: "draft" | "published" | "archived" };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save about content.");
+      }
+
+      setContent(payload.data.content);
+      setStatus(payload.data.status);
+      setMessage("About content saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save about content.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="h-24 animate-pulse rounded-lg bg-[#f4eee4]" />
+          ))}
+        </div>
+      </AdminCard>
+    );
+  }
+
+  if (error && !content) {
+    return (
+      <AdminCard>
+        <h2 className="font-display text-3xl font-light">About Content</h2>
+        <p className="mt-3 text-sm leading-6 text-[#9b4b35]">{error}</p>
+      </AdminCard>
+    );
+  }
+
+  if (!content) return null;
+
   return (
-    <FormGrid
-      title="About Content"
-      description="Studio profile copy ready for future CMS editing."
-      fields={[
-        [
-          "About Text",
-          "Katha Digital is a cinematic production studio built around story, emotion, and craft.",
-        ],
-        [
-          "Mission",
-          "To preserve meaningful moments through polished photography, film, and digital media.",
-        ],
-        [
-          "Studio Info",
-          "Bhaktapur-based creative team for weddings, events, brands, and original productions.",
-        ],
-      ]}
-    />
+    <AdminCard>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="font-display text-3xl font-light">About Content</h2>
+          <p className="mt-2 text-sm text-[#746c61]">
+            Edit the singleton about page content used by the public About page.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Save className="size-4" />
+          {isSaving ? "Saving..." : "Save"}
+        </button>
+      </div>
+
+      {(message || error) && (
+        <div
+          className={`mt-5 rounded-lg border px-4 py-3 text-sm ${
+            error
+              ? "border-[#edd8d1] bg-[#fff7f4] text-[#9b4b35]"
+              : "border-[#d8c79d] bg-[#fff9eb] text-[#856322]"
+          }`}
+        >
+          {error || message}
+        </div>
+      )}
+
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
+        <HomeSelect
+          label="Status"
+          value={status}
+          options={["draft", "published", "archived"]}
+          onChange={(value) => setStatus(value as "draft" | "published" | "archived")}
+        />
+        <HomeInput
+          label="Metadata Title"
+          value={content.metadata.title}
+          onChange={(value) => updateContent((draft) => void (draft.metadata.title = value))}
+        />
+        <HomeTextarea
+          label="Metadata Description"
+          value={content.metadata.description}
+          onChange={(value) => updateContent((draft) => void (draft.metadata.description = value))}
+        />
+        <HomeTextarea
+          label="Open Graph Description"
+          value={content.metadata.openGraph.description}
+          onChange={(value) =>
+            updateContent((draft) => void (draft.metadata.openGraph.description = value))
+          }
+        />
+        <HomeInput
+          label="Open Graph Title"
+          value={content.metadata.openGraph.title}
+          onChange={(value) =>
+            updateContent((draft) => void (draft.metadata.openGraph.title = value))
+          }
+        />
+      </div>
+
+      <HomeSubsection title="Hero">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Hero Eyebrow"
+            value={content.hero.eyebrow}
+            onChange={(value) => updateContent((draft) => void (draft.hero.eyebrow = value))}
+          />
+          <HomeInput
+            label="Hero Title"
+            value={content.hero.title}
+            onChange={(value) => updateContent((draft) => void (draft.hero.title = value))}
+          />
+          <HomeInput
+            label="Hero Emphasis"
+            value={content.hero.emphasis}
+            onChange={(value) => updateContent((draft) => void (draft.hero.emphasis = value))}
+          />
+          <HomeTextarea
+            label="Hero Subtitle"
+            value={content.hero.subtitle}
+            onChange={(value) => updateContent((draft) => void (draft.hero.subtitle = value))}
+          />
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Studio">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Studio Eyebrow"
+            value={content.studio.eyebrow}
+            onChange={(value) => updateContent((draft) => void (draft.studio.eyebrow = value))}
+          />
+          <HomeMediaSelect
+            label="Studio Image"
+            value={content.studio.image}
+            options={mediaOptions}
+            onChange={(value) => updateContent((draft) => void (draft.studio.image = value))}
+          />
+          <HomeTextarea
+            label="Studio Title"
+            value={content.studio.title}
+            onChange={(value) => updateContent((draft) => void (draft.studio.title = value))}
+          />
+          <HomeInput
+            label="Studio Image Alt"
+            value={content.studio.imageAlt}
+            onChange={(value) => updateContent((draft) => void (draft.studio.imageAlt = value))}
+          />
+          <HomeInput
+            label="Studio Image Badge"
+            value={content.studio.imageBadge}
+            onChange={(value) => updateContent((draft) => void (draft.studio.imageBadge = value))}
+          />
+          {content.studio.paragraphs.map((paragraph, index) => (
+            <HomeTextarea
+              key={index}
+              label={`Studio Paragraph ${index + 1}`}
+              value={paragraph}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.studio.paragraphs[index] = value))
+              }
+            />
+          ))}
+          {content.studio.steps.map(([num, label], index) => (
+            <div key={index} className="grid gap-4 md:col-span-2 md:grid-cols-2">
+              <HomeInput
+                label={`Step ${index + 1} Number`}
+                value={num}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.studio.steps[index][0] = value))
+                }
+              />
+              <HomeInput
+                label={`Step ${index + 1} Label`}
+                value={label}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.studio.steps[index][1] = value))
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Principles">
+        {content.principles.map((principle, index) => (
+          <div
+            key={principle.eyebrow}
+            className="grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
+          >
+            <HomeSelect
+              label={`Principle ${index + 1} Icon`}
+              value={principle.iconKey}
+              options={["Eye", "Target", "Sparkles"]}
+              onChange={(value) =>
+                updateContent(
+                  (draft) =>
+                    void (draft.principles[index].iconKey = value as "Eye" | "Target" | "Sparkles"),
+                )
+              }
+            />
+            <HomeInput
+              label={`Principle ${index + 1} Eyebrow`}
+              value={principle.eyebrow}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.principles[index].eyebrow = value))
+              }
+            />
+            <HomeTextarea
+              label={`Principle ${index + 1} Title`}
+              value={principle.title}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.principles[index].title = value))
+              }
+            />
+            <HomeTextarea
+              label={`Principle ${index + 1} Text`}
+              value={principle.text}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.principles[index].text = value))
+              }
+            />
+          </div>
+        ))}
+      </HomeSubsection>
+
+      <HomeSubsection title="Founder">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Founder Eyebrow"
+            value={content.founder.eyebrow}
+            onChange={(value) => updateContent((draft) => void (draft.founder.eyebrow = value))}
+          />
+          <HomeMediaSelect
+            label="Founder Image"
+            value={content.founder.image}
+            options={mediaOptions}
+            onChange={(value) => updateContent((draft) => void (draft.founder.image = value))}
+          />
+          <HomeInput
+            label="Founder Title"
+            value={content.founder.title}
+            onChange={(value) => updateContent((draft) => void (draft.founder.title = value))}
+          />
+          <HomeInput
+            label="Founder Emphasis"
+            value={content.founder.emphasis}
+            onChange={(value) => updateContent((draft) => void (draft.founder.emphasis = value))}
+          />
+          <HomeInput
+            label="Founder Suffix"
+            value={content.founder.suffix}
+            onChange={(value) => updateContent((draft) => void (draft.founder.suffix = value))}
+          />
+          <HomeInput
+            label="Founder Image Alt"
+            value={content.founder.imageAlt}
+            onChange={(value) => updateContent((draft) => void (draft.founder.imageAlt = value))}
+          />
+          <HomeTextarea
+            label="Founder Quote"
+            value={content.founder.quote}
+            onChange={(value) => updateContent((draft) => void (draft.founder.quote = value))}
+          />
+          <HomeInput
+            label="Founder Name"
+            value={content.founder.name}
+            onChange={(value) => updateContent((draft) => void (draft.founder.name = value))}
+          />
+          <HomeInput
+            label="Founder Role"
+            value={content.founder.role}
+            onChange={(value) => updateContent((draft) => void (draft.founder.role = value))}
+          />
+          {content.founder.bullets.map((bullet, index) => (
+            <HomeInput
+              key={index}
+              label={`Founder Bullet ${index + 1}`}
+              value={bullet}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.founder.bullets[index] = value))
+              }
+            />
+          ))}
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Team">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Team Eyebrow"
+            value={content.team.eyebrow}
+            onChange={(value) => updateContent((draft) => void (draft.team.eyebrow = value))}
+          />
+          <HomeInput
+            label="Team Title"
+            value={content.team.title}
+            onChange={(value) => updateContent((draft) => void (draft.team.title = value))}
+          />
+          <HomeInput
+            label="Team Emphasis"
+            value={content.team.emphasis}
+            onChange={(value) => updateContent((draft) => void (draft.team.emphasis = value))}
+          />
+          <HomeInput
+            label="Team Suffix"
+            value={content.team.suffix}
+            onChange={(value) => updateContent((draft) => void (draft.team.suffix = value))}
+          />
+          <HomeTextarea
+            label="Team Subtitle"
+            value={content.team.subtitle}
+            onChange={(value) => updateContent((draft) => void (draft.team.subtitle = value))}
+          />
+        </div>
+        {content.team.members.map((member, index) => (
+          <div
+            key={member.name}
+            className="mt-5 grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
+          >
+            <HomeInput
+              label={`Team Member ${index + 1} Name`}
+              value={member.name}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.team.members[index].name = value))
+              }
+            />
+            <HomeInput
+              label={`Team Member ${index + 1} Role`}
+              value={member.role}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.team.members[index].role = value))
+              }
+            />
+            <HomeMediaSelect
+              label={`Team Member ${index + 1} Image`}
+              value={member.image}
+              options={mediaOptions}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.team.members[index].image = value))
+              }
+            />
+            <HomeInput
+              label={`Team Member ${index + 1} Position`}
+              value={member.position}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.team.members[index].position = value))
+              }
+            />
+            <HomeTextarea
+              label={`Team Member ${index + 1} Note`}
+              value={member.note}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.team.members[index].note = value))
+              }
+            />
+          </div>
+        ))}
+      </HomeSubsection>
+
+      <HomeSubsection title="CTA & Visibility">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="CTA Eyebrow"
+            value={content.cta.eyebrow}
+            onChange={(value) => updateContent((draft) => void (draft.cta.eyebrow = value))}
+          />
+          <HomeInput
+            label="CTA Button Text"
+            value={content.cta.buttonText}
+            onChange={(value) => updateContent((draft) => void (draft.cta.buttonText = value))}
+          />
+          <HomeTextarea
+            label="CTA Title"
+            value={content.cta.title}
+            onChange={(value) => updateContent((draft) => void (draft.cta.title = value))}
+          />
+          <HomeTextarea
+            label="CTA Subtitle"
+            value={content.cta.subtitle}
+            onChange={(value) => updateContent((draft) => void (draft.cta.subtitle = value))}
+          />
+          <HomeInput
+            label="CTA Link"
+            value={content.cta.to}
+            onChange={(value) => updateContent((draft) => void (draft.cta.to = value))}
+          />
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(Object.keys(content.sections) as Array<keyof AboutContentValue["sections"]>).map(
+            (section) => (
+              <HomeCheckbox
+                key={section}
+                label={section}
+                checked={content.sections[section]}
+                onChange={(checked) =>
+                  updateContent((draft) => void (draft.sections[section] = checked))
+                }
+              />
+            ),
+          )}
+        </div>
+      </HomeSubsection>
+    </AdminCard>
   );
 }
 

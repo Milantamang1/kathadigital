@@ -211,6 +211,22 @@ model HomeContent {
   updatedAt           DateTime      @updatedAt
 }
 
+model AboutContent {
+  id          String        @id @default("about")
+  metadata    Json
+  hero        Json
+  studio      Json
+  principles  Json
+  founder     Json
+  team        Json
+  cta         Json
+  sections    Json
+  status      ContentStatus @default(PUBLISHED)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
 model PageContent {
   id           String        @id @default(cuid())
   page         String

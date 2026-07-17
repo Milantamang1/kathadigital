@@ -203,3 +203,89 @@ export const homeContentUpdateSchema = z.object({
   status: z.enum(["draft", "published", "archived"]),
   content: homeContentSchema,
 });
+
+export const aboutContentSchema = z.object({
+  metadata: z.object({
+    title: requiredTextSchema,
+    description: requiredTextSchema,
+    openGraph: z.object({
+      title: requiredTextSchema,
+      description: requiredTextSchema,
+    }),
+  }),
+  hero: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    subtitle: requiredTextSchema,
+  }),
+  studio: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    paragraphs: z.array(requiredTextSchema).length(2),
+    steps: z.array(z.tuple([requiredTextSchema, requiredTextSchema])).length(3),
+    image: mediaReferenceSchema,
+    imageAlt: z.string().trim().max(220),
+    imageBadge: requiredTextSchema,
+  }),
+  principles: z
+    .array(
+      z.object({
+        iconKey: z.enum(["Eye", "Target", "Sparkles"]),
+        eyebrow: requiredTextSchema,
+        title: requiredTextSchema,
+        text: requiredTextSchema,
+      }),
+    )
+    .length(3),
+  founder: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+    image: mediaReferenceSchema,
+    imageAlt: z.string().trim().max(220),
+    quote: requiredTextSchema,
+    bullets: z.array(requiredTextSchema).length(4),
+    name: requiredTextSchema,
+    role: requiredTextSchema,
+  }),
+  team: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    emphasis: requiredTextSchema,
+    suffix: requiredTextSchema,
+    subtitle: requiredTextSchema,
+    members: z
+      .array(
+        z.object({
+          name: requiredTextSchema,
+          role: requiredTextSchema,
+          note: requiredTextSchema,
+          image: mediaReferenceSchema,
+          position: requiredTextSchema,
+        }),
+      )
+      .length(4),
+  }),
+  cta: z.object({
+    eyebrow: requiredTextSchema,
+    title: requiredTextSchema,
+    subtitle: requiredTextSchema,
+    buttonText: requiredTextSchema,
+    to: z.string().trim().min(1).max(120).startsWith("/"),
+  }),
+  sections: z.object({
+    hero: z.boolean(),
+    studio: z.boolean(),
+    principles: z.boolean(),
+    founder: z.boolean(),
+    team: z.boolean(),
+    cta: z.boolean(),
+  }),
+});
+
+export const aboutContentUpdateSchema = z.object({
+  status: z.enum(["draft", "published", "archived"]),
+  content: aboutContentSchema,
+});
