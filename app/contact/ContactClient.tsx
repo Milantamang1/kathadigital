@@ -166,7 +166,9 @@ export default function ContactPage() {
               {sending ? (
                 "Sending..."
               ) : sent ? (
-                "Sent"
+                <>
+                  Send Message <Send className="size-4" />
+                </>
               ) : (
                 <>
                   Send Message <Send className="size-4" />
