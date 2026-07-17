@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AboutContentValue } from "@/lib/cms/about-content";
+import type { ContactMessageValue } from "@/lib/cms/contact-messages";
 import type { EventValue } from "@/lib/cms/events";
 import type { HomeContentValue } from "@/lib/cms/home-content";
 import type { NewsPostValue } from "@/lib/cms/news";
@@ -66,12 +67,6 @@ const portfolioItems = [
   ["Diva Supermodel Finale", "Events", "Published"],
   ["Studio Red", "Portraits", "Draft"],
   ["Mountain Story", "Travel", "Published"],
-];
-
-const messages = [
-  ["Anjali Sharma", "anjali@example.com", "Wedding film inquiry", "Unread"],
-  ["Rajan Maharjan", "rajan@example.com", "Brand video request", "Replied"],
-  ["Priya Gurung", "priya@example.com", "Event coverage", "Unread"],
 ];
 
 const bookings = [
@@ -299,14 +294,7 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
   if (activeSection === "Productions") return <ProductionsContentSection />;
   if (activeSection === "News") return <NewsContentSection />;
   if (activeSection === "Events") return <EventsContentSection />;
-  if (activeSection === "Contact Messages")
-    return (
-      <DataTableSection
-        title="Contact Messages"
-        rows={messages}
-        columns={["Name", "Email", "Subject", "Status"]}
-      />
-    );
+  if (activeSection === "Contact Messages") return <ContactMessagesSection />;
   if (activeSection === "Booking Inquiries")
     return (
       <DataTableSection
@@ -4208,6 +4196,351 @@ function EventsContentSection() {
       </AdminCard>
     </div>
   );
+}
+
+type ContactMessagesResponse =
+  | {
+      ok: true;
+      data: {
+        messages: ContactMessageValue[];
+      };
+    }
+  | {
+      ok: false;
+      error: { message: string };
+    };
+
+function ContactMessagesSection() {
+  const [messages, setMessages] = useState<ContactMessageValue[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [isLoading, setIsLoading] = useState(true);
+  const [messageText, setMessageText] = useState("");
+  const [error, setError] = useState("");
+
+  const selectedMessage =
+    messages.find((message) => message.id === selectedId) ?? messages[0] ?? null;
+
+  const filteredMessages = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return messages
+      .filter((message) => {
+        const matchesSearch =
+          !query ||
+          [message.name, message.email, message.phone, message.subject, message.message]
+            .join(" ")
+            .toLowerCase()
+            .includes(query);
+        const matchesFilter = filter === "All" || message.status === filter;
+
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        const left = new Date(a.createdAt).getTime();
+        const right = new Date(b.createdAt).getTime();
+        return sortOrder === "newest" ? right - left : left - right;
+      });
+  }, [filter, messages, search, sortOrder]);
+
+  async function loadMessages() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/contact-messages");
+      const payload = (await response.json()) as ContactMessagesResponse;
+
+      if (!response.ok) {
+        throw new Error("Unable to load contact messages.");
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error.message);
+      }
+
+      setMessages(payload.data.messages);
+      setSelectedId((current) => current || payload.data.messages[0]?.id || "");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load contact messages.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadMessages();
+  }, []);
+
+  async function updateMessageStatus(id: string, status: ContactMessageValue["status"]) {
+    setMessageText("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/contact-messages/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { message: ContactMessageValue };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to update message.");
+      }
+
+      const updated = payload.data.message;
+      setMessages((current) =>
+        current.map((message) => (message.id === updated.id ? updated : message)),
+      );
+      setSelectedId(updated.id);
+      setMessageText("Message status updated.");
+    } catch (statusError) {
+      setError(statusError instanceof Error ? statusError.message : "Unable to update message.");
+    }
+  }
+
+  async function deleteMessage(message: ContactMessageValue) {
+    const confirmed = window.confirm(`Delete message from "${message.name}"?`);
+    if (!confirmed) return;
+
+    setMessageText("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/admin/contact-messages/${encodeURIComponent(message.id)}`,
+        {
+          method: "DELETE",
+        },
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message ?? "Unable to delete message.");
+      }
+
+      setMessages((current) => current.filter((item) => item.id !== message.id));
+      setSelectedId((current) => (current === message.id ? "" : current));
+      setMessageText("Message deleted.");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete message.");
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-56 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 xl:grid-cols-[0.45fr_1fr]">
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.45fr_1fr]">
+      <AdminCard>
+        <div>
+          <h2 className="font-display text-3xl font-light">Contact Messages</h2>
+          <p className="mt-2 text-sm text-[#746c61]">
+            Review submitted contact messages without editing the original content.
+          </p>
+        </div>
+
+        <HomeSubsection title="Message List">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <HomeInput label="Search" value={search} onChange={setSearch} />
+            <HomeSelect
+              label="Filter"
+              value={filter}
+              options={["All", "new", "read", "resolved", "archived"]}
+              onChange={setFilter}
+            />
+            <HomeSelect
+              label="Sort"
+              value={sortOrder}
+              options={["newest", "oldest"]}
+              onChange={(value) => setSortOrder(value as "newest" | "oldest")}
+            />
+          </div>
+
+          {messageText && (
+            <div className="rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+              {messageText}
+            </div>
+          )}
+          {error && (
+            <div className="rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {filteredMessages.length === 0 ? (
+              <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+                No contact messages match this view.
+              </div>
+            ) : (
+              filteredMessages.map((message) => (
+                <button
+                  key={message.id}
+                  type="button"
+                  onClick={() => setSelectedId(message.id)}
+                  className={`block w-full rounded-lg border p-4 text-left transition ${
+                    selectedMessage?.id === message.id
+                      ? "border-[#d7a33b] bg-[#fff8e7]"
+                      : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-bold text-[#211d16]">
+                        {message.name}
+                      </div>
+                      <div className="mt-1 truncate text-xs text-[#746c61]">{message.subject}</div>
+                    </div>
+                    <MessageStatusPill status={message.status} />
+                  </div>
+                  <div className="mt-3 text-xs uppercase tracking-widest text-[#8c8479]">
+                    {formatAdminDateTime(message.createdAt)}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </HomeSubsection>
+      </AdminCard>
+
+      <AdminCard>
+        {selectedMessage ? (
+          <>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="font-display text-3xl font-light">Message Details</h2>
+                <p className="mt-2 text-sm text-[#746c61]">
+                  Submitted {formatAdminDateTime(selectedMessage.createdAt)}
+                </p>
+              </div>
+              <MessageStatusPill status={selectedMessage.status} />
+            </div>
+
+            <HomeSubsection title="Message Details">
+              <div className="grid gap-4 md:grid-cols-2">
+                <ReadOnlyField label="Sender" value={selectedMessage.name} />
+                <ReadOnlyField label="Email" value={selectedMessage.email} />
+                <ReadOnlyField label="Phone" value={selectedMessage.phone || "Not provided"} />
+                <ReadOnlyField label="Subject" value={selectedMessage.subject || "Not provided"} />
+              </div>
+              <ReadOnlyField label="Message" value={selectedMessage.message} multiline />
+            </HomeSubsection>
+
+            <HomeSubsection title="Status & Actions">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateMessageStatus(selectedMessage.id, "read")}
+                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                >
+                  Mark Read
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateMessageStatus(selectedMessage.id, "new")}
+                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                >
+                  Mark Unread
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateMessageStatus(selectedMessage.id, "resolved")}
+                  className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+                >
+                  Mark Resolved
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateMessageStatus(selectedMessage.id, "archived")}
+                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                >
+                  Archive
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteMessage(selectedMessage)}
+                  className="rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                >
+                  Delete
+                </button>
+              </div>
+            </HomeSubsection>
+          </>
+        ) : (
+          <div>
+            <h2 className="font-display text-3xl font-light">No message selected</h2>
+            <p className="mt-3 text-sm leading-6 text-[#746c61]">
+              Contact form submissions will appear here after visitors send messages.
+            </p>
+          </div>
+        )}
+      </AdminCard>
+    </div>
+  );
+}
+
+function MessageStatusPill({ status }: { status: ContactMessageValue["status"] }) {
+  const className =
+    status === "new"
+      ? "border-[#d8c79d] bg-[#fbf3dd] text-[#9a6d16]"
+      : status === "read"
+        ? "border-[#d9d1c4] bg-[#f7f4ec] text-[#746c61]"
+        : status === "resolved"
+          ? "border-[#c9ddc8] bg-[#f3fbef] text-[#4f7a35]"
+          : "border-[#e8d4cd] bg-[#fff7f4] text-[#9b4b35]";
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${className}`}>
+      {status}
+    </span>
+  );
+}
+
+function ReadOnlyField({
+  label,
+  multiline = false,
+  value,
+}: {
+  label: string;
+  value: string;
+  multiline?: boolean;
+}) {
+  return (
+    <div className={multiline ? "md:col-span-2" : ""}>
+      <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+        {label}
+      </div>
+      <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] px-4 py-3 text-sm leading-6 text-[#2d271f]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function formatAdminDateTime(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function SettingsSection() {

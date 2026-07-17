@@ -28,6 +28,7 @@ const mapSrc =
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
   return (
     <>
@@ -113,10 +114,34 @@ export default function ContactPage() {
           </div>
 
           <form
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault();
-              setSent(true);
-              toast.success("Message sent! We'll be in touch shortly.");
+              setSending(true);
+
+              const form = event.currentTarget;
+              const formData = new FormData(form);
+              const payload = Object.fromEntries(formData.entries());
+
+              try {
+                const response = await fetch("/api/contact", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payload),
+                });
+                const result = (await response.json().catch(() => null)) as { ok?: boolean } | null;
+
+                if (!response.ok || !result?.ok) {
+                  throw new Error("Unable to send message.");
+                }
+
+                form.reset();
+                setSent(true);
+                toast.success("Message sent successfully!");
+              } catch {
+                toast.error("Unable to send message. Please try again.");
+              } finally {
+                setSending(false);
+              }
             }}
             className="space-y-5 rounded-[2rem] border border-border/65 bg-gradient-to-b from-card/78 to-card/56 p-6 shadow-[0_30px_95px_-54px_oklch(0_0_0/0.88)] ring-1 ring-white/5 backdrop-blur-sm md:p-8 lg:col-span-7 lg:p-10"
           >
@@ -135,9 +160,12 @@ export default function ContactPage() {
             <Field label="Message" name="message" textarea required />
             <button
               type="submit"
+              disabled={sending}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-4 font-semibold text-primary-foreground shadow-gold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-16px_oklch(0.78_0.13_80/0.8)] sm:w-fit"
             >
-              {sent ? (
+              {sending ? (
+                "Sending..."
+              ) : sent ? (
                 "Sent"
               ) : (
                 <>
