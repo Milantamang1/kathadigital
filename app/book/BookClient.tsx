@@ -64,10 +64,30 @@ export default function BookPage() {
 
       <Section>
         <form
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            setSubmitted(true);
-            toast.success("Booking inquiry received!");
+            const form = e.currentTarget;
+            const formData = new FormData(form);
+            const payload = Object.fromEntries(formData.entries());
+
+            try {
+              const response = await fetch("/api/booking-inquiries", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const result = (await response.json().catch(() => null)) as { ok?: boolean } | null;
+
+              if (!response.ok || !result?.ok) {
+                throw new Error("Unable to submit booking inquiry.");
+              }
+
+              form.reset();
+              setSubmitted(true);
+              toast.success("Booking inquiry received!");
+            } catch {
+              toast.error("Unable to submit booking inquiry. Please try again.");
+            }
           }}
           className="max-w-3xl mx-auto p-8 md:p-12 rounded-3xl border border-border bg-card space-y-6"
         >

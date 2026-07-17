@@ -127,6 +127,7 @@ export const bookingInquirySchema = z.object({
   email: z.string().trim().email().max(180).optional(),
   phone: z.string().trim().min(1).max(60),
   service: z.string().trim().max(160).optional(),
+  eventType: z.string().trim().max(120).optional(),
   eventDate: z.coerce.date().optional(),
   location: z.string().trim().max(180).optional(),
   budget: z.string().trim().max(120).optional(),

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AboutContentValue } from "@/lib/cms/about-content";
+import type { BookingInquiryStatus, BookingInquiryValue } from "@/lib/cms/booking-inquiries";
 import type { ContactMessageValue } from "@/lib/cms/contact-messages";
 import type { EventValue } from "@/lib/cms/events";
 import type { HomeContentValue } from "@/lib/cms/home-content";
@@ -109,6 +110,20 @@ type DashboardResponse =
   | {
       ok: true;
       data: DashboardData;
+    }
+  | {
+      ok: false;
+      error: {
+        message: string;
+      };
+    };
+
+type BookingInquiriesResponse =
+  | {
+      ok: true;
+      data: {
+        inquiries: BookingInquiryValue[];
+      };
     }
   | {
       ok: false;
@@ -295,14 +310,7 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
   if (activeSection === "News") return <NewsContentSection />;
   if (activeSection === "Events") return <EventsContentSection />;
   if (activeSection === "Contact Messages") return <ContactMessagesSection />;
-  if (activeSection === "Booking Inquiries")
-    return (
-      <DataTableSection
-        title="Booking Inquiries"
-        rows={bookings}
-        columns={["Name", "Service", "Event Date", "Budget"]}
-      />
-    );
+  if (activeSection === "Booking Inquiries") return <BookingInquiriesSection />;
   return <SettingsSection />;
 }
 
@@ -4514,6 +4522,434 @@ function ContactMessagesSection() {
       </AdminCard>
     </div>
   );
+}
+
+const bookingStatusOptions: BookingInquiryStatus[] = [
+  "new",
+  "inProgress",
+  "contacted",
+  "confirmed",
+  "completed",
+  "cancelled",
+  "archived",
+];
+
+const bookingStatusLabels = {
+  new: "New",
+  inProgress: "In Progress",
+  contacted: "Contacted",
+  confirmed: "Confirmed",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  archived: "Archived",
+} satisfies Record<BookingInquiryStatus, string>;
+
+function BookingInquiriesSection() {
+  const [inquiries, setInquiries] = useState<BookingInquiryValue[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [notesDraft, setNotesDraft] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [messageText, setMessageText] = useState("");
+  const [error, setError] = useState("");
+
+  const selectedInquiry =
+    inquiries.find((inquiry) => inquiry.id === selectedId) ?? inquiries[0] ?? null;
+
+  useEffect(() => {
+    setNotesDraft(selectedInquiry?.adminNotes ?? "");
+  }, [selectedInquiry?.adminNotes, selectedInquiry?.id]);
+
+  const filteredInquiries = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return inquiries
+      .filter((inquiry) => {
+        const matchesSearch =
+          !query ||
+          [
+            inquiry.name,
+            inquiry.email,
+            inquiry.phone,
+            inquiry.service,
+            inquiry.eventType,
+            inquiry.location,
+            inquiry.budget,
+            inquiry.message,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(query);
+        const matchesFilter = filter === "All" || inquiry.status === filter;
+
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        const left = new Date(a.createdAt).getTime();
+        const right = new Date(b.createdAt).getTime();
+        return sortOrder === "newest" ? right - left : left - right;
+      });
+  }, [filter, inquiries, search, sortOrder]);
+
+  async function loadInquiries() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/booking-inquiries");
+      const payload = (await response.json().catch(() => null)) as BookingInquiriesResponse | null;
+
+      if (!payload) {
+        throw new Error(
+          "Booking inquiries API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error("Unable to load booking inquiries.");
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error.message);
+      }
+
+      setInquiries(payload.data.inquiries);
+      setSelectedId((current) => current || payload.data.inquiries[0]?.id || "");
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error ? loadError.message : "Unable to load booking inquiries.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadInquiries();
+  }, []);
+
+  async function updateInquiry(
+    id: string,
+    data: { status?: BookingInquiryStatus; adminNotes?: string },
+    successMessage: string,
+  ) {
+    setMessageText("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/booking-inquiries/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        ok: boolean;
+        data?: { inquiry: BookingInquiryValue };
+        error?: { message: string };
+      } | null;
+
+      if (!payload) {
+        throw new Error(
+          "Booking inquiries API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to update booking inquiry.");
+      }
+
+      const updated = payload.data.inquiry;
+      setInquiries((current) =>
+        current.map((inquiry) => (inquiry.id === updated.id ? updated : inquiry)),
+      );
+      setSelectedId(updated.id);
+      setNotesDraft(updated.adminNotes);
+      setMessageText(successMessage);
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error ? updateError.message : "Unable to update booking inquiry.",
+      );
+    }
+  }
+
+  async function deleteInquiry(inquiry: BookingInquiryValue) {
+    const confirmed = window.confirm(`Delete booking inquiry from "${inquiry.name}"?`);
+    if (!confirmed) return;
+
+    setMessageText("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/admin/booking-inquiries/${encodeURIComponent(inquiry.id)}`,
+        {
+          method: "DELETE",
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        ok: boolean;
+        error?: { message: string };
+      } | null;
+
+      if (!payload) {
+        throw new Error(
+          "Booking inquiries API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message ?? "Unable to delete booking inquiry.");
+      }
+
+      setInquiries((current) => current.filter((item) => item.id !== inquiry.id));
+      setSelectedId((current) => (current === inquiry.id ? "" : current));
+      setMessageText("Booking inquiry deleted.");
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : "Unable to delete booking inquiry.",
+      );
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-56 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 xl:grid-cols-[0.45fr_1fr]">
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.45fr_1fr]">
+      <AdminCard>
+        <div>
+          <h2 className="font-display text-3xl font-light">Booking Inquiries</h2>
+          <p className="mt-2 text-sm text-[#746c61]">
+            Review submitted booking inquiries without editing the original customer details.
+          </p>
+        </div>
+
+        <HomeSubsection title="Inquiry List">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <HomeInput label="Search" value={search} onChange={setSearch} />
+            <HomeSelect
+              label="Filter"
+              value={filter}
+              options={["All", ...bookingStatusOptions]}
+              onChange={setFilter}
+            />
+            <HomeSelect
+              label="Sort"
+              value={sortOrder}
+              options={["newest", "oldest"]}
+              onChange={(value) => setSortOrder(value as "newest" | "oldest")}
+            />
+          </div>
+
+          {messageText && (
+            <div className="rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+              {messageText}
+            </div>
+          )}
+          {error && (
+            <div className="rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {filteredInquiries.length === 0 ? (
+              <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+                No booking inquiries match this view.
+              </div>
+            ) : (
+              filteredInquiries.map((inquiry) => (
+                <button
+                  key={inquiry.id}
+                  type="button"
+                  onClick={() => setSelectedId(inquiry.id)}
+                  className={`block w-full rounded-lg border p-4 text-left transition ${
+                    selectedInquiry?.id === inquiry.id
+                      ? "border-[#d7a33b] bg-[#fff8e7]"
+                      : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-bold text-[#211d16]">
+                        {inquiry.name}
+                      </div>
+                      <div className="mt-1 truncate text-xs text-[#746c61]">
+                        {inquiry.service || "Service not provided"}
+                      </div>
+                    </div>
+                    <BookingStatusPill status={inquiry.status} />
+                  </div>
+                  <div className="mt-3 text-xs uppercase tracking-widest text-[#8c8479]">
+                    {formatAdminDateTime(inquiry.createdAt)}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </HomeSubsection>
+      </AdminCard>
+
+      <AdminCard>
+        {selectedInquiry ? (
+          <>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="font-display text-3xl font-light">Inquiry Details</h2>
+                <p className="mt-2 text-sm text-[#746c61]">
+                  Submitted {formatAdminDateTime(selectedInquiry.createdAt)}
+                </p>
+              </div>
+              <BookingStatusPill status={selectedInquiry.status} />
+            </div>
+
+            <HomeSubsection title="Inquiry Details">
+              <div className="grid gap-4 md:grid-cols-2">
+                <ReadOnlyField label="Customer" value={selectedInquiry.name} />
+                <ReadOnlyField label="Phone" value={selectedInquiry.phone} />
+                <ReadOnlyField label="Email" value={selectedInquiry.email || "Not provided"} />
+                <ReadOnlyField
+                  label="Event Type"
+                  value={selectedInquiry.eventType || "Not provided"}
+                />
+                <ReadOnlyField
+                  label="Requested Service"
+                  value={selectedInquiry.service || "Not provided"}
+                />
+                <ReadOnlyField
+                  label="Preferred Date"
+                  value={formatInquiryDate(selectedInquiry.eventDate)}
+                />
+                <ReadOnlyField
+                  label="Location"
+                  value={selectedInquiry.location || "Not provided"}
+                />
+                <ReadOnlyField label="Budget" value={selectedInquiry.budget || "Not provided"} />
+              </div>
+              <ReadOnlyField
+                label="Message"
+                value={selectedInquiry.message || "Not provided"}
+                multiline
+              />
+            </HomeSubsection>
+
+            <HomeSubsection title="Status & Actions">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {bookingStatusOptions
+                  .filter((status) => status !== "archived")
+                  .map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() =>
+                        updateInquiry(
+                          selectedInquiry.id,
+                          { status },
+                          `Inquiry marked ${bookingStatusLabels[status]}.`,
+                        )
+                      }
+                      className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                    >
+                      {bookingStatusLabels[status]}
+                    </button>
+                  ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateInquiry(
+                      selectedInquiry.id,
+                      { status: "archived" },
+                      "Booking inquiry archived.",
+                    )
+                  }
+                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                >
+                  Archive
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteInquiry(selectedInquiry)}
+                  className="rounded-md border border-[#e8d4cd] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                >
+                  Delete
+                </button>
+              </div>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+                  Internal Admin Notes
+                </span>
+                <textarea
+                  value={notesDraft}
+                  rows={5}
+                  onChange={(event) => setNotesDraft(event.target.value)}
+                  className="w-full resize-none rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  updateInquiry(
+                    selectedInquiry.id,
+                    { adminNotes: notesDraft },
+                    "Internal notes saved.",
+                  )
+                }
+                className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d]"
+              >
+                <Save className="size-4" />
+                Save Notes
+              </button>
+            </HomeSubsection>
+          </>
+        ) : (
+          <div>
+            <h2 className="font-display text-3xl font-light">No inquiry selected</h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Booking form submissions will appear here after customers send inquiries.
+            </p>
+          </div>
+        )}
+      </AdminCard>
+    </div>
+  );
+}
+
+function BookingStatusPill({ status }: { status: BookingInquiryStatus }) {
+  const className =
+    status === "new"
+      ? "border-[#d8c79d] bg-[#fbf3dd] text-[#9a6d16]"
+      : status === "confirmed" || status === "completed"
+        ? "border-[#c9ddc8] bg-[#f3fbef] text-[#4f7a35]"
+        : status === "cancelled" || status === "archived"
+          ? "border-[#e8d4cd] bg-[#fff7f4] text-[#9b4b35]"
+          : "border-[#d9d1c4] bg-[#f7f4ec] text-[#746c61]";
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${className}`}>
+      {bookingStatusLabels[status]}
+    </span>
+  );
+}
+
+function formatInquiryDate(value: string) {
+  if (!value) return "Not provided";
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function MessageStatusPill({ status }: { status: ContactMessageValue["status"] }) {

@@ -14,10 +14,12 @@ enum ContentStatus {
 
 enum BookingStatus {
   NEW
+  IN_PROGRESS
   CONTACTED
   CONFIRMED
   CANCELLED
   COMPLETED
+  ARCHIVED
 }
 
 enum MessageStatus {
@@ -49,10 +51,12 @@ model BookingInquiry {
   email     String?
   phone     String
   service   String?
+  eventType String?
   eventDate DateTime?
   location  String?
   budget    String?
   message   String?
+  adminNotes String?
   status    BookingStatus @default(NEW)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
