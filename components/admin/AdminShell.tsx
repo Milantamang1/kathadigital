@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AboutContentValue } from "@/lib/cms/about-content";
+import type { EventValue } from "@/lib/cms/events";
 import type { HomeContentValue } from "@/lib/cms/home-content";
 import type { NewsPostValue } from "@/lib/cms/news";
 import type { PortfolioProjectValue } from "@/lib/cms/portfolio";
@@ -65,12 +66,6 @@ const portfolioItems = [
   ["Diva Supermodel Finale", "Events", "Published"],
   ["Studio Red", "Portraits", "Draft"],
   ["Mountain Story", "Travel", "Published"],
-];
-
-const events = [
-  ["Mrs Nepal Finale 2026", "Jan 18, 2026", "Scheduled"],
-  ["Himalaya Fashion Week", "Feb 22, 2026", "Scheduled"],
-  ["Startup Nepal Summit", "Mar 09, 2026", "Draft"],
 ];
 
 const messages = [
@@ -303,10 +298,7 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
   if (activeSection === "Portfolio") return <PortfolioContentSection />;
   if (activeSection === "Productions") return <ProductionsContentSection />;
   if (activeSection === "News") return <NewsContentSection />;
-  if (activeSection === "Events")
-    return (
-      <ProjectListSection title="Events" rows={events} columns={["Event", "Date", "Status"]} />
-    );
+  if (activeSection === "Events") return <EventsContentSection />;
   if (activeSection === "Contact Messages")
     return (
       <DataTableSection
@@ -3633,6 +3625,565 @@ function PortfolioContentSection() {
             />
             <HomeCheckbox
               label="Featured Project"
+              checked={draft.featured}
+              onChange={(checked) => updateDraft((next) => void (next.featured = checked))}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "published"))}
+              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              onClick={() => updateDraft((next) => void (next.status = "draft"))}
+              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+            >
+              Unpublish
+            </button>
+          </div>
+        </HomeSubsection>
+      </AdminCard>
+    </div>
+  );
+}
+
+type EventDraft = Omit<EventValue, "id" | "publishedAt" | "updatedAt" | "description"> & {
+  id?: string;
+};
+
+type EventsAdminResponse =
+  | {
+      ok: true;
+      data: {
+        events: EventValue[];
+        mediaOptions: string[];
+      };
+    }
+  | {
+      ok: false;
+      error: { message: string };
+    };
+
+function createEventDraft(displayOrder: number): EventDraft {
+  return {
+    name: "",
+    slug: "",
+    type: "Event coverage",
+    date: "",
+    dateLabel: "",
+    location: "",
+    desc: "",
+    image: "/katha-media/event-winner-crown.jpeg",
+    position: "object-center",
+    eventStatus: "upcoming",
+    status: "draft",
+    featured: false,
+    displayOrder,
+  };
+}
+
+function EventDateInput({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+        {label}
+      </span>
+      <input
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+      />
+    </label>
+  );
+}
+
+function EventsContentSection() {
+  const [events, setEvents] = useState<EventValue[]>([]);
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [draft, setDraft] = useState<EventDraft>(() => createEventDraft(0));
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [draggedId, setDraggedId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const filteredEvents = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return events.filter((event) => {
+      const matchesSearch =
+        !query ||
+        [event.name, event.type, event.location, event.dateLabel, event.desc]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      const matchesFilter =
+        filter === "All" ||
+        event.status === filter ||
+        event.eventStatus === filter ||
+        event.type === filter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [events, filter, search]);
+
+  const eventTypeOptions = useMemo(() => {
+    const types = [...new Set(events.map((event) => event.type).filter(Boolean))];
+    return draft.type && !types.includes(draft.type) ? [draft.type, ...types] : types;
+  }, [draft.type, events]);
+
+  async function loadEvents() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/events");
+      const payload = (await response.json()) as EventsAdminResponse;
+
+      if (!response.ok) {
+        throw new Error("Unable to load events.");
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error.message);
+      }
+
+      setEvents(payload.data.events);
+      setMediaOptions(payload.data.mediaOptions);
+      setDraft((current) => (current.id ? current : createEventDraft(payload.data.events.length)));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load events.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadEvents();
+  }, []);
+
+  function updateDraft(mutator: (next: EventDraft) => void) {
+    setDraft((current) => {
+      const next = structuredClone(current) as EventDraft;
+      mutator(next);
+      return next;
+    });
+  }
+
+  function startNewEvent() {
+    setDraft(createEventDraft(events.length));
+    setIsPreviewOpen(false);
+    setMessage("");
+    setError("");
+  }
+
+  function editEvent(event: EventValue) {
+    setDraft({ ...event });
+    setIsPreviewOpen(false);
+    setMessage("");
+    setError("");
+  }
+
+  async function saveEvent() {
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const isEditing = Boolean(draft.id);
+      const response = await fetch(
+        isEditing ? `/api/admin/events/${encodeURIComponent(draft.id ?? "")}` : "/api/admin/events",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        },
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { event: EventValue };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save event.");
+      }
+
+      const savedEvent = payload.data.event;
+      setEvents((current) => {
+        const next = current.filter((event) => event.id !== savedEvent.id);
+        next.push(savedEvent);
+        return next.sort((a, b) => a.displayOrder - b.displayOrder);
+      });
+      setDraft({ ...savedEvent });
+      setMessage("Event saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save event.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteEvent(event: EventValue) {
+    const confirmed = window.confirm(`Delete "${event.name}" from Events?`);
+    if (!confirmed) return;
+
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/events/${encodeURIComponent(event.id)}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error?.message ?? "Unable to delete event.");
+      }
+
+      setEvents((current) => current.filter((item) => item.id !== event.id));
+      if (draft.id === event.id) {
+        setDraft(createEventDraft(Math.max(events.length - 1, 0)));
+      }
+      setMessage("Event deleted.");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete event.");
+    }
+  }
+
+  async function reorderEvents(sourceId: string, targetId: string) {
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIndex = events.findIndex((event) => event.id === sourceId);
+    const targetIndex = events.findIndex((event) => event.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const next = [...events];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+
+    setEvents(next.map((event, index) => ({ ...event, displayOrder: index })));
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: next.map((event) => event.id) }),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { events: EventValue[] };
+        error?: { message: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to reorder events.");
+      }
+
+      setEvents(payload.data.events);
+      setMessage("Event order saved.");
+    } catch (reorderError) {
+      setError(reorderError instanceof Error ? reorderError.message : "Unable to reorder events.");
+      void loadEvents();
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
+          <div>
+            <h2 className="font-display text-3xl font-light">Events</h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Manage upcoming and completed event coverage shown on the public Events page.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNewEvent}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+          >
+            <Plus className="size-4" />
+            Add Event
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <HomeInput label="Search" value={search} onChange={setSearch} />
+          <HomeSelect
+            label="Filter"
+            value={filter}
+            options={[
+              "All",
+              "published",
+              "draft",
+              "archived",
+              "upcoming",
+              "completed",
+              "cancelled",
+              ...eventTypeOptions,
+            ]}
+            onChange={setFilter}
+          />
+        </div>
+
+        {message && (
+          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3">
+          {filteredEvents.length === 0 ? (
+            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+              No events match this search.
+            </div>
+          ) : (
+            filteredEvents.map((event) => (
+              <article
+                key={event.id}
+                draggable
+                onDragStart={() => setDraggedId(event.id)}
+                onDragOver={(dragEvent) => dragEvent.preventDefault()}
+                onDrop={() => void reorderEvents(draggedId, event.id)}
+                className={`rounded-lg border p-3 transition ${
+                  draft.id === event.id
+                    ? "border-[#d7a33b] bg-[#fff8e7]"
+                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => editEvent(event)}
+                  className="block w-full text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={event.image} alt="" className="h-14 w-16 rounded-md object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-[#211d16]">{event.name}</div>
+                      <div className="mt-1 text-xs text-[#746c61]">
+                        {event.dateLabel} / {event.eventStatus} / {event.status}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => editEvent(event)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  >
+                    <Edit3 className="size-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteEvent(event)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </AdminCard>
+
+      <AdminCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-light">
+              {draft.id ? "Edit Event" : "Add Event"}
+            </h2>
+            <p className="mt-2 text-sm text-[#746c61]">
+              Keep event dates, locations, descriptions, images, and publishing status accurate.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen((current) => !current)}
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+            >
+              <Search className="size-4" />
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={saveEvent}
+              disabled={isSaving}
+              className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+            >
+              <Save className="size-4" />
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+
+        {isPreviewOpen && (
+          <div className="mt-6 overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2]">
+            <img
+              src={draft.image}
+              alt=""
+              className={`aspect-[16/8] w-full object-cover ${draft.position}`}
+            />
+            <div className="p-5">
+              <div className="text-xs uppercase tracking-[0.2em] text-[#b98722]">
+                Event coverage
+              </div>
+              <h3 className="mt-3 font-display text-3xl font-light">
+                {draft.name || "Untitled event"}
+              </h3>
+              <div className="mt-3 text-sm text-[#746c61]">
+                {draft.dateLabel} / {draft.location}
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[#746c61]">{draft.desc}</p>
+            </div>
+          </div>
+        )}
+
+        <HomeSubsection title="Basic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Event Name"
+              value={draft.name}
+              onChange={(value) => updateDraft((next) => void (next.name = value))}
+            />
+            <HomeInput
+              label="Event Type"
+              value={draft.type}
+              onChange={(value) => updateDraft((next) => void (next.type = value))}
+            />
+            <HomeInput
+              label="Display Order"
+              value={draft.displayOrder}
+              onChange={(value) =>
+                updateDraft((next) => void (next.displayOrder = Number.parseInt(value, 10) || 0))
+              }
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Event Details">
+          <HomeTextarea
+            label="Description"
+            value={draft.desc}
+            onChange={(value) => updateDraft((next) => void (next.desc = value))}
+          />
+        </HomeSubsection>
+
+        <HomeSubsection title="Date, Time & Location">
+          <div className="grid gap-5 md:grid-cols-2">
+            <EventDateInput
+              label="Event Date"
+              value={draft.date}
+              onChange={(value) => updateDraft((next) => void (next.date = value))}
+            />
+            <HomeInput
+              label="Display Date"
+              value={draft.dateLabel}
+              onChange={(value) => updateDraft((next) => void (next.dateLabel = value))}
+            />
+            <HomeInput
+              label="Location"
+              value={draft.location}
+              onChange={(value) => updateDraft((next) => void (next.location = value))}
+            />
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Images & Media">
+          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
+            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
+              <img
+                src={draft.image}
+                alt=""
+                className={`aspect-[4/3] w-full rounded-md object-cover ${draft.position}`}
+              />
+            </div>
+            <div className="grid gap-5">
+              <HomeMediaSelect
+                label="Event Image"
+                value={draft.image}
+                options={mediaOptions}
+                onChange={(value) => updateDraft((next) => void (next.image = value))}
+              />
+              <HomeInput
+                label="Image Position"
+                value={draft.position}
+                onChange={(value) => updateDraft((next) => void (next.position = value))}
+              />
+            </div>
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Registration Details">
+          <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 text-sm leading-6 text-[#746c61]">
+            The public Events page currently uses the fixed View Gallery action and does not store a
+            registration link.
+          </div>
+        </HomeSubsection>
+
+        <HomeSubsection title="Publish Settings">
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeSelect
+              label="Event Group"
+              value={draft.eventStatus}
+              options={["upcoming", "completed", "cancelled"]}
+              onChange={(value) =>
+                updateDraft((next) => void (next.eventStatus = value as EventValue["eventStatus"]))
+              }
+            />
+            <HomeSelect
+              label="Status"
+              value={draft.status}
+              options={["draft", "published", "archived"]}
+              onChange={(value) =>
+                updateDraft((next) => void (next.status = value as EventValue["status"]))
+              }
+            />
+            <HomeCheckbox
+              label="Featured Event"
               checked={draft.featured}
               onChange={(checked) => updateDraft((next) => void (next.featured = checked))}
             />

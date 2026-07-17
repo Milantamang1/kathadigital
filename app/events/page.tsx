@@ -3,7 +3,8 @@ import { ArrowUpRight, Calendar, MapPin, Play } from "lucide-react";
 import { CTA } from "@/components/site/CTA";
 import { Section, SectionHeader } from "@/components/site/Section";
 import { YouTubeEmbed } from "@/components/site/YouTubeEmbed";
-import { events } from "@/lib/site-data";
+import { getEventVideos, getPublishedEvents } from "@/lib/cms/events";
+import type { EventValue } from "@/lib/cms/events";
 
 export const metadata = {
   title: "Events",
@@ -14,16 +15,7 @@ export const metadata = {
   },
 };
 
-type EventItem = {
-  name: string;
-  date: string;
-  location: string;
-  desc: string;
-  image: string;
-  position: string;
-};
-
-function EventCard({ event, featured = false }: { event: EventItem; featured?: boolean }) {
+function EventCard({ event, featured = false }: { event: EventValue; featured?: boolean }) {
   return (
     <article
       className={`group overflow-hidden rounded-[1.45rem] border border-border/65 bg-card/70 p-2.5 shadow-[0_24px_80px_-50px_oklch(0_0_0/0.88)] ring-1 ring-white/5 transition-all duration-300 hover:-translate-y-1 hover:border-gold/45 hover:bg-card/90 ${
@@ -64,7 +56,7 @@ function EventCard({ event, featured = false }: { event: EventItem; featured?: b
             </h3>
             <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-2">
-                <Calendar className="size-4 shrink-0 text-gold" /> {event.date}
+                <Calendar className="size-4 shrink-0 text-gold" /> {event.dateLabel}
               </span>
               <span className="inline-flex items-center gap-2">
                 <MapPin className="size-4 shrink-0 text-gold" /> {event.location}
@@ -81,7 +73,10 @@ function EventCard({ event, featured = false }: { event: EventItem; featured?: b
   );
 }
 
-export default function EventsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function EventsPage() {
+  const [events, videos] = await Promise.all([getPublishedEvents(), getEventVideos()]);
   const [featuredUpcoming, ...otherUpcoming] = events.upcoming;
 
   return (
@@ -120,7 +115,7 @@ export default function EventsPage() {
                     {featuredUpcoming.name}
                   </h2>
                   <p className="mt-3 text-sm text-foreground/66">
-                    {featuredUpcoming.date} / {featuredUpcoming.location}
+                    {featuredUpcoming.dateLabel} / {featuredUpcoming.location}
                   </p>
                 </div>
               </div>
@@ -183,8 +178,13 @@ export default function EventsPage() {
           className="!mb-8 md:!mb-10"
         />
         <div className="grid gap-5 md:grid-cols-2">
-          {["QVfkQe29EKY", "u-yd2xWAQZk", "6OFqS_qlJB0"].map((id) => (
-            <YouTubeEmbed key={id} id={id} title="Event film" className="rounded-2xl" />
+          {videos.map((video) => (
+            <YouTubeEmbed
+              key={video.id}
+              id={video.id}
+              title={video.title}
+              className="rounded-2xl"
+            />
           ))}
         </div>
         <div className="mt-8 flex justify-center">

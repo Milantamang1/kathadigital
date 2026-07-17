@@ -94,12 +94,24 @@ export const newsReorderSchema = z.object({
 
 export const eventSchema = commonContentFieldsSchema.extend({
   name: z.string().trim().min(1).max(180),
-  slug: slugSchema,
-  date: z.string().trim().min(1).max(80),
+  slug: slugSchema.optional(),
+  type: z.string().trim().max(100).optional().default("Event coverage"),
+  date: z.string().trim().max(40).optional().default(""),
+  dateLabel: z.string().trim().min(1).max(80),
   location: z.string().trim().min(1).max(160),
   desc: z.string().trim().min(1).max(800),
   image: mediaReferenceSchema,
   position: z.string().trim().min(1).max(80),
+  eventStatus: z.enum(["upcoming", "completed", "cancelled"]),
+  featured: z.boolean().default(false),
+});
+
+export const eventCreateSchema = eventSchema;
+
+export const eventUpdateSchema = eventSchema;
+
+export const eventReorderSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1),
 });
 
 export const contactMessageSchema = z.object({
