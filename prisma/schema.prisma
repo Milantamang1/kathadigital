@@ -46,20 +46,20 @@ model AdminUser {
 }
 
 model BookingInquiry {
-  id        String        @id @default(cuid())
-  name      String
-  email     String?
-  phone     String
-  service   String?
-  eventType String?
-  eventDate DateTime?
-  location  String?
-  budget    String?
-  message   String?
+  id         String        @id @default(cuid())
+  name       String
+  email      String?
+  phone      String
+  service    String?
+  eventType  String?
+  eventDate  DateTime?
+  location   String?
+  budget     String?
+  message    String?
   adminNotes String?
-  status    BookingStatus @default(NEW)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  status     BookingStatus @default(NEW)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 }
 
 model ContactMessage {
@@ -72,6 +72,35 @@ model ContactMessage {
   status    MessageStatus @default(NEW)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+}
+
+model SiteSettings {
+  id                   String   @id @default("site-settings")
+  brandName            String
+  adminBrand           String
+  adminEmail           String
+  siteTitle            String
+  siteDescription      String
+  openGraphTitle       String
+  openGraphDescription String
+  twitterSite          String?
+  logoSrc              String
+  faviconSrc           String
+  openGraphImage       String
+  office               String
+  footerLocation       String
+  phone                String
+  whatsapp             String
+  email                String
+  mapSrc               String
+  instagramUrl         String?
+  youtubeUrl           String?
+  facebookUrl          String?
+  footerDescription    String
+  footerSubtext        String
+  footerCredit         String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model Service {

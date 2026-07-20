@@ -1,11 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Instagram, Youtube, Facebook, Mail, Phone, MapPin } from "lucide-react";
+import type { SiteSettingsValue } from "@/lib/cms/settings";
 import { Container } from "./Container";
 
-const logoSrc = "/katha-media/kathadigital-logo-cutout.png";
-
-export function Footer() {
+export function Footer({ settings }: { settings: SiteSettingsValue }) {
   return (
     <footer className="relative mt-20 border-t border-border bg-ink md:mt-28">
       <Container className="grid gap-12 py-16 md:grid-cols-2 md:py-20 lg:grid-cols-4">
@@ -13,8 +12,8 @@ export function Footer() {
           <div className="flex items-center gap-4">
             <div className="flex h-20 w-64 items-center justify-center">
               <Image
-                src={logoSrc}
-                alt="Katha Digital"
+                src={settings.logoSrc}
+                alt={settings.brandName}
                 loading="lazy"
                 className="h-full w-full object-contain"
                 width={256}
@@ -23,11 +22,10 @@ export function Footer() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Premium photography, cinematography, events, original shows, and digital films shaped
-            with story-first production craft.
+            {settings.footerDescription}
           </p>
           <p className="text-xs text-muted-foreground/80 leading-relaxed">
-            Built in Nepal for people, brands, and moments that deserve a cinematic memory.
+            {settings.footerSubtext}
           </p>
         </div>
 
@@ -78,22 +76,26 @@ export function Footer() {
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li className="flex items-start gap-3">
               <MapPin className="size-4 text-gold mt-0.5 shrink-0" />
-              Bhaktapur, Nepal
+              {settings.footerLocation}
             </li>
             <li className="flex items-start gap-3">
               <Phone className="size-4 text-gold mt-0.5 shrink-0" />
-              +977 9861078220
+              {settings.phone}
             </li>
             <li className="flex items-start gap-3">
               <Mail className="size-4 text-gold mt-0.5 shrink-0" />
-              hello@kathadigital.com
+              {settings.email}
             </li>
           </ul>
           <div className="flex gap-3 mt-6">
-            {[Instagram, Youtube, Facebook].map((Icon, i) => (
+            {[
+              { Icon: Instagram, href: settings.instagramUrl },
+              { Icon: Youtube, href: settings.youtubeUrl },
+              { Icon: Facebook, href: settings.facebookUrl },
+            ].map(({ Icon, href }, i) => (
               <a
                 key={i}
-                href="#"
+                href={href || "#"}
                 className="size-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-gold hover:border-gold transition-all"
               >
                 <Icon className="size-4" />
@@ -105,8 +107,10 @@ export function Footer() {
 
       <div className="border-t border-border/60">
         <Container className="flex flex-col items-center justify-between gap-3 py-6 text-xs text-muted-foreground sm:flex-row">
-          <p>Copyright {new Date().getFullYear()} Katha Digital. All rights reserved.</p>
-          <p>Stories composed with cinematic care.</p>
+          <p>
+            Copyright {new Date().getFullYear()} {settings.brandName}. All rights reserved.
+          </p>
+          <p>{settings.footerCredit}</p>
         </Container>
       </div>
     </footer>

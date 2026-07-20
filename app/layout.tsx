@@ -4,49 +4,53 @@ import "./globals.css";
 import { Footer } from "@/components/site/Footer";
 import { Navbar } from "@/components/site/Navbar";
 import { Toaster } from "@/components/ui/sonner";
+import { getSiteSettings } from "@/lib/cms/settings";
 import { Providers } from "./providers";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: {
-    default: "Katha Digital",
-    template: "%s - Katha Digital",
-  },
-  description:
-    "Katha Digital is a premium cinematic production studio for wedding films, photography, events, original shows, music videos, brand stories, and digital media.",
-  authors: [{ name: "Katha Digital" }],
-  icons: {
-    icon: [
-      {
-        url: "/katha-media/kathadigital-logo.png",
-        type: "image/png",
-      },
-    ],
-    apple: [
-      {
-        url: "/katha-media/kathadigital-logo.png",
-        type: "image/png",
-      },
-    ],
-  },
-  openGraph: {
-    title: "Katha Digital - Premium Cinematic Production Studio",
-    description:
-      "Premium wedding films, photography, events, original shows, music videos, brand stories, and digital media.",
-    type: "website",
-    images: ["/katha-media/hero-preview.jpg"],
-  },
-  twitter: {
-    card: "summary",
-    site: "@KathaDigital",
-    title: "Katha Digital - Premium Cinematic Production Studio",
-    description:
-      "Premium wedding films, photography, events, original shows, music videos, brand stories, and digital media.",
-    images: ["/katha-media/hero-preview.jpg"],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+  return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+    title: {
+      default: settings.siteTitle,
+      template: `%s - ${settings.brandName}`,
+    },
+    description: settings.siteDescription,
+    authors: [{ name: settings.brandName }],
+    icons: {
+      icon: [
+        {
+          url: settings.faviconSrc,
+          type: "image/png",
+        },
+      ],
+      apple: [
+        {
+          url: settings.faviconSrc,
+          type: "image/png",
+        },
+      ],
+    },
+    openGraph: {
+      title: settings.openGraphTitle,
+      description: settings.openGraphDescription,
+      type: "website",
+      images: [settings.openGraphImage],
+    },
+    twitter: {
+      card: "summary",
+      site: settings.twitterSite || undefined,
+      title: settings.openGraphTitle,
+      description: settings.openGraphDescription,
+      images: [settings.openGraphImage],
+    },
+  };
+}
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const settings = await getSiteSettings();
+
   return (
     <html lang="en" className="min-h-full w-full overflow-x-clip">
       <head>
@@ -60,9 +64,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-dvh w-full overflow-x-clip">
         <Providers>
           <div className="flex min-h-dvh w-full max-w-full flex-col overflow-x-clip bg-background text-foreground">
-            <Navbar />
+            <Navbar settings={settings} />
             <main className="w-full max-w-full flex-1 overflow-x-clip">{children}</main>
-            <Footer />
+            <Footer settings={settings} />
             <Toaster />
           </div>
         </Providers>

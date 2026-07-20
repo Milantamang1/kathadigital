@@ -14,21 +14,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHero, Section } from "@/components/site/Section";
-
-const contactItems = [
-  { icon: MapPin, label: "Office", value: "Madhyapur Thimi, Bhaktapur, Nepal" },
-  { icon: Phone, label: "Phone", value: "+977 9861078220" },
-  { icon: MessageCircle, label: "WhatsApp", value: "+977 9861078220" },
-  { icon: Mail, label: "Email", value: "hello@kathadigital.com" },
-] as const;
+import type { SiteSettingsValue } from "@/lib/cms/settings";
 
 const contactImage = "/katha-media/event-grand-finale.jpeg";
-const mapSrc =
-  "https://www.google.com/maps?q=Katha%20Digital%4027.6628191,85.3932101&z=17&output=embed";
 
-export default function ContactPage() {
+export default function ContactPage({ settings }: { settings: SiteSettingsValue }) {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const contactItems = [
+    { icon: MapPin, label: "Office", value: settings.office },
+    { icon: Phone, label: "Phone", value: settings.phone },
+    { icon: MessageCircle, label: "WhatsApp", value: settings.whatsapp },
+    { icon: Mail, label: "Email", value: settings.email },
+  ] as const;
 
   return (
     <>
@@ -82,7 +80,10 @@ export default function ContactPage() {
                 {[Instagram, Youtube, Facebook].map((Icon, index) => (
                   <a
                     key={index}
-                    href="#"
+                    href={
+                      [settings.instagramUrl, settings.youtubeUrl, settings.facebookUrl][index] ||
+                      "#"
+                    }
                     className="flex size-11 items-center justify-center rounded-full border border-border/70 bg-background/30 text-foreground/58 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/55 hover:bg-gold/10 hover:text-gold"
                   >
                     <Icon className="size-4" />
@@ -182,7 +183,7 @@ export default function ContactPage() {
       <Section className="pt-0 pb-14 md:pb-20">
         <div className="relative overflow-hidden rounded-[2rem] border border-border/65 bg-card shadow-[0_28px_88px_-54px_oklch(0_0_0/0.85)] ring-1 ring-white/5">
           <iframe
-            src={mapSrc}
+            src={settings.mapSrc}
             title="Katha Digital location map"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"

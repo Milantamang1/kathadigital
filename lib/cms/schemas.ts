@@ -134,6 +134,35 @@ export const bookingInquirySchema = z.object({
   message: z.string().trim().max(5000).optional(),
 });
 
+const settingsTextSchema = z.string().trim().min(1).max(1000);
+const optionalSettingsUrlSchema = z.string().trim().max(500);
+
+export const siteSettingsSchema = z.object({
+  brandName: z.string().trim().min(1).max(120),
+  adminBrand: z.string().trim().min(1).max(120),
+  adminEmail: z.string().trim().email().max(180),
+  siteTitle: z.string().trim().min(1).max(160),
+  siteDescription: settingsTextSchema,
+  openGraphTitle: z.string().trim().min(1).max(180),
+  openGraphDescription: settingsTextSchema,
+  twitterSite: z.string().trim().max(80),
+  logoSrc: mediaReferenceSchema,
+  faviconSrc: mediaReferenceSchema,
+  openGraphImage: mediaReferenceSchema,
+  office: z.string().trim().min(1).max(220),
+  footerLocation: z.string().trim().min(1).max(160),
+  phone: z.string().trim().min(1).max(80),
+  whatsapp: z.string().trim().min(1).max(80),
+  email: z.string().trim().email().max(180),
+  mapSrc: z.string().trim().min(1).max(800),
+  instagramUrl: optionalSettingsUrlSchema,
+  youtubeUrl: optionalSettingsUrlSchema,
+  facebookUrl: optionalSettingsUrlSchema,
+  footerDescription: settingsTextSchema,
+  footerSubtext: settingsTextSchema,
+  footerCredit: z.string().trim().min(1).max(220),
+});
+
 export const homeContentSchema = z.object({
   metadata: z.object({
     title: requiredTextSchema,

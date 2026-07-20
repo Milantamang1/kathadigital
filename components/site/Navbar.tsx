@@ -5,10 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import type { SiteSettingsValue } from "@/lib/cms/settings";
 import { cn } from "@/lib/utils";
 import { Container } from "./Container";
-
-const logoSrc = "/katha-media/kathadigital-logo-cutout.png";
 
 const links = [
   { to: "/", label: "Home" },
@@ -21,7 +20,7 @@ const links = [
   { to: "/contact", label: "Contact" },
 ] as const;
 
-export function Navbar() {
+export function Navbar({ settings }: { settings: SiteSettingsValue }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -49,8 +48,8 @@ export function Navbar() {
           >
             <span className="flex h-12 w-32 items-center justify-center sm:w-40">
               <Image
-                src={logoSrc}
-                alt="Katha Digital"
+                src={settings.logoSrc}
+                alt={settings.brandName}
                 className="h-full w-full object-contain"
                 width={176}
                 height={56}

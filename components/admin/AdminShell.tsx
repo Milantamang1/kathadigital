@@ -12,11 +12,16 @@ import type { NewsPostValue } from "@/lib/cms/news";
 import type { PortfolioProjectValue } from "@/lib/cms/portfolio";
 import type { ProductionEpisodeValue, ProductionValue } from "@/lib/cms/productions";
 import type { ServiceValue } from "@/lib/cms/services";
+import type { SiteSettingsValue } from "@/lib/cms/settings";
 import {
   Bell,
   Briefcase,
   CalendarDays,
+  CheckCircle2,
+  ChevronDown,
   Edit3,
+  Eye,
+  EyeOff,
   FileText,
   Gauge,
   Home,
@@ -27,10 +32,13 @@ import {
   Mail,
   Newspaper,
   Palette,
+  PlayCircle,
   Plus,
   Save,
   Search,
   Settings,
+  Share2,
+  Sparkles,
   Trash2,
   Users,
   Video,
@@ -123,6 +131,21 @@ type BookingInquiriesResponse =
       ok: true;
       data: {
         inquiries: BookingInquiryValue[];
+      };
+    }
+  | {
+      ok: false;
+      error: {
+        message: string;
+      };
+    };
+
+type SettingsResponse =
+  | {
+      ok: true;
+      data: {
+        settings: SiteSettingsValue;
+        mediaOptions: string[];
       };
     }
   | {
@@ -587,315 +610,927 @@ function HomeContentSection() {
   if (!content) return null;
 
   return (
-    <AdminCard>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="font-display text-3xl font-light">Homepage Content</h2>
-          <p className="mt-2 text-sm text-[#746c61]">
-            Edit the singleton homepage content used by the public home page.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Save className="size-4" />
-          {isSaving ? "Saving..." : "Save"}
-        </button>
-      </div>
+    <HomeContentEditor
+      content={content}
+      error={error}
+      isSaving={isSaving}
+      mediaOptions={mediaOptions}
+      message={message}
+      onSave={handleSave}
+      setStatus={setStatus}
+      status={status}
+      updateContent={updateContent}
+    />
+  );
+}
 
-      {(message || error) && (
-        <div
-          className={`mt-5 rounded-lg border px-4 py-3 text-sm ${
-            error
-              ? "border-[#edd8d1] bg-[#fff7f4] text-[#9b4b35]"
-              : "border-[#d8c79d] bg-[#fff9eb] text-[#856322]"
-          }`}
-        >
-          {error || message}
-        </div>
-      )}
+type HomeContentEditorProps = {
+  content: HomeContentValue;
+  error: string;
+  isSaving: boolean;
+  mediaOptions: string[];
+  message: string;
+  onSave: () => void;
+  setStatus: (status: "draft" | "published" | "archived") => void;
+  status: "draft" | "published" | "archived";
+  updateContent: (mutator: (draft: HomeContentValue) => void) => void;
+};
 
-      <div className="mt-6 grid gap-5 md:grid-cols-2">
-        <HomeSelect
-          label="Status"
-          value={status}
-          options={["draft", "published", "archived"]}
-          onChange={(value) => setStatus(value as "draft" | "published" | "archived")}
-        />
-        <HomeMediaSelect
-          label="Hero Image"
-          value={content.heroImg}
-          options={mediaOptions}
-          onChange={(value) => updateContent((draft) => void (draft.heroImg = value))}
-        />
-        <HomeInput
-          label="Metadata Title"
-          value={content.metadata.title}
-          onChange={(value) => updateContent((draft) => void (draft.metadata.title = value))}
-        />
-        <HomeInput
-          label="Open Graph Title"
-          value={content.metadata.openGraph.title}
-          onChange={(value) =>
-            updateContent((draft) => void (draft.metadata.openGraph.title = value))
-          }
-        />
-        <HomeTextarea
-          label="Metadata Description"
-          value={content.metadata.description}
-          onChange={(value) => updateContent((draft) => void (draft.metadata.description = value))}
-        />
-        <HomeTextarea
-          label="Open Graph Description"
-          value={content.metadata.openGraph.description}
-          onChange={(value) =>
-            updateContent((draft) => void (draft.metadata.openGraph.description = value))
-          }
-        />
-        <HomeInput
-          label="Hero Eyebrow"
-          value={content.eyebrow}
-          onChange={(value) => updateContent((draft) => void (draft.eyebrow = value))}
-        />
-        <HomeInput
-          label="Hero Alt"
-          value={content.heroAlt}
-          onChange={(value) => updateContent((draft) => void (draft.heroAlt = value))}
-        />
-        <HomeTextarea
-          label="Hero Title"
-          value={content.title}
-          onChange={(value) => updateContent((draft) => void (draft.title = value))}
-        />
-        <HomeTextarea
-          label="Hero Subtitle"
-          value={content.subtitle}
-          onChange={(value) => updateContent((draft) => void (draft.subtitle = value))}
-        />
-        <HomeInput
-          label="Hero Side Label"
-          value={content.sideLabel}
-          onChange={(value) => updateContent((draft) => void (draft.sideLabel = value))}
-        />
-        <HomeMediaSelect
-          label="Hidden Image"
-          value={content.hiddenImage.src}
-          options={mediaOptions}
-          onChange={(value) => updateContent((draft) => void (draft.hiddenImage.src = value))}
-        />
-      </div>
+function HomeContentEditor({
+  content,
+  error,
+  isSaving,
+  mediaOptions,
+  message,
+  onSave,
+  setStatus,
+  status,
+  updateContent,
+}: HomeContentEditorProps) {
+  const visibleCount = Object.values(content.sections).filter(Boolean).length;
 
-      <HomeSubsection title="Hero Actions">
-        {content.actions.map((action, index) => (
-          <div key={action.variant} className="grid gap-4 md:grid-cols-2">
-            <HomeInput
-              label={`Action ${index + 1} Label`}
-              value={action.label}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.actions[index].label = value))
-              }
-            />
-            <HomeInput
-              label={`Action ${index + 1} Link`}
-              value={action.href}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.actions[index].href = value))
-              }
-            />
+  return (
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-xl border border-[#ddd6c8] bg-white shadow-[0_18px_48px_-32px_rgba(23,19,13,0.48)]">
+        <div className="border-b border-[#ece4d8] bg-[#fffdf8] p-5 md:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#efd8a5] bg-[#fff8e8] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[#9c6d13]">
+                <Sparkles className="size-3.5" />
+                Homepage Editor
+              </div>
+              <h2 className="mt-4 font-display text-3xl font-light leading-tight md:text-4xl">
+                Edit the homepage, section by section.
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[#746c61]">
+                Update the words, images, buttons, and section visibility without changing how the
+                public homepage is built.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
+              <HomeEditorSelect
+                helper="Choose whether this page is live, saved for later, or hidden."
+                label="Publishing Status"
+                options={["draft", "published", "archived"]}
+                value={status}
+                onChange={(value) => setStatus(value as "draft" | "published" | "archived")}
+              />
+              <div className="rounded-lg border border-[#e8dece] bg-[#faf7ef] p-4">
+                <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b7d68]">
+                  Visible Sections
+                </div>
+                <div className="mt-2 flex items-end gap-2">
+                  <span className="font-display text-4xl text-[#17130d]">{visibleCount}</span>
+                  <span className="pb-1 text-sm text-[#746c61]">of 10 enabled</span>
+                </div>
+              </div>
+            </div>
           </div>
-        ))}
-      </HomeSubsection>
-
-      <HomeSubsection title="Metrics">
-        {content.metrics.map((metric, index) => (
-          <div key={index} className="grid gap-4 md:grid-cols-2">
-            <HomeInput
-              label={`Metric ${index + 1} Number`}
-              value={metric.n}
-              onChange={(value) => updateContent((draft) => void (draft.metrics[index].n = value))}
-            />
-            <HomeInput
-              label={`Metric ${index + 1} Label`}
-              value={metric.l}
-              onChange={(value) => updateContent((draft) => void (draft.metrics[index].l = value))}
-            />
-          </div>
-        ))}
-      </HomeSubsection>
-
-      <HomeSubsection title="Section Copy">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="Who We Are Eyebrow"
-            value={content.whoWeAre.eyebrow}
-            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.eyebrow = value))}
-          />
-          <HomeInput
-            label="Who We Are Emphasis"
-            value={content.whoWeAre.emphasis}
-            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.emphasis = value))}
-          />
-          <HomeTextarea
-            label="Who We Are Title"
-            value={content.whoWeAre.title}
-            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.title = value))}
-          />
-          <HomeTextarea
-            label="Who We Are Subtitle"
-            value={content.whoWeAre.subtitle}
-            onChange={(value) => updateContent((draft) => void (draft.whoWeAre.subtitle = value))}
-          />
-          <HomeSectionFields
-            label="Services"
-            section={content.servicesSection}
-            onChange={(section) => updateContent((draft) => void (draft.servicesSection = section))}
-          />
-          <HomeSectionFields
-            label="Selected Work"
-            section={content.selectedWorkSection}
-            onChange={(section) =>
-              updateContent((draft) => void (draft.selectedWorkSection = section))
-            }
-          />
-          <HomeSectionFields
-            label="Productions"
-            section={content.productionsSection}
-            onChange={(section) =>
-              updateContent((draft) => void (draft.productionsSection = section))
-            }
-          />
-          <HomeSectionFields
-            label="News"
-            section={content.newsSection}
-            onChange={(section) => updateContent((draft) => void (draft.newsSection = section))}
-          />
         </div>
-      </HomeSubsection>
 
-      <HomeSubsection title="YouTube Films">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="YouTube Eyebrow"
-            value={content.youtubeSection.eyebrow}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.youtubeSection.eyebrow = value))
+        {(message || error) && (
+          <div
+            role="status"
+            className={`m-5 flex items-start gap-3 rounded-lg border px-4 py-3 text-sm md:m-6 ${
+              error
+                ? "border-[#edd8d1] bg-[#fff7f4] text-[#9b4b35]"
+                : "border-[#d8c79d] bg-[#fff9eb] text-[#856322]"
+            }`}
+          >
+            {error ? (
+              <EyeOff className="mt-0.5 size-4" />
+            ) : (
+              <CheckCircle2 className="mt-0.5 size-4" />
+            )}
+            <span>{error || message}</span>
+          </div>
+        )}
+
+        <div className="sticky top-0 z-10 border-b border-[#ece4d8] bg-white/95 px-5 py-3 backdrop-blur md:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-[#746c61]">
+              Changes stay in this editor until you save them.
+            </div>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={isSaving}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#efbc4a] px-5 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] transition hover:bg-[#e4ad34] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+            >
+              <Save className="size-4" />
+              {isSaving ? "Saving..." : "Save Homepage"}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 bg-[#f7f2e8] p-4 md:p-6">
+          <HomeEditorPanel
+            defaultOpen
+            description="The first screen visitors see: background image, headline, buttons, and quick stats."
+            icon={Home}
+            title="Hero Banner"
+            visible={content.sections.hero}
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.hero = checked))
             }
-          />
-          <HomeInput
-            label="YouTube Title"
-            value={content.youtubeSection.title}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.youtubeSection.title = value))
+          >
+            <HomePreviewImage
+              src={content.heroImg}
+              alt={content.heroAlt}
+              label="Current Banner Image"
+            />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <HomeEditorMediaSelect
+                helper="This image fills the first screen of the homepage."
+                label="Banner Image"
+                options={mediaOptions}
+                value={content.heroImg}
+                onChange={(value) => updateContent((draft) => void (draft.heroImg = value))}
+              />
+              <HomeEditorInput
+                helper="A short line above the main headline."
+                label="Small Heading"
+                value={content.eyebrow}
+                onChange={(value) => updateContent((draft) => void (draft.eyebrow = value))}
+              />
+              <HomeEditorTextarea
+                helper="Keep this clear and memorable; it is the main promise on the page."
+                label="Main Headline"
+                value={content.title}
+                onChange={(value) => updateContent((draft) => void (draft.title = value))}
+              />
+              <HomeEditorTextarea
+                helper="One or two sentences that explain what Katha Digital offers."
+                label="Intro Text"
+                value={content.subtitle}
+                onChange={(value) => updateContent((draft) => void (draft.subtitle = value))}
+              />
+            </div>
+
+            <div className="rounded-lg border border-[#eadfcd] bg-white p-4">
+              <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#2d271f]">
+                <Share2 className="size-4 text-[#b98722]" />
+                Buttons
+              </div>
+              <div className="grid gap-4 xl:grid-cols-3">
+                {content.actions.map((action, index) => (
+                  <div
+                    key={action.variant}
+                    className="rounded-lg border border-[#eee4d5] bg-[#fffbf5] p-4"
+                  >
+                    <HomeButtonPreview label={action.label} variant={action.variant} />
+                    <div className="mt-4 grid gap-3">
+                      <HomeEditorInput
+                        label={`Button ${index + 1} Text`}
+                        value={action.label}
+                        onChange={(value) =>
+                          updateContent((draft) => void (draft.actions[index].label = value))
+                        }
+                      />
+                      <HomeEditorInput
+                        label={`Button ${index + 1} Destination`}
+                        value={action.href}
+                        onChange={(value) =>
+                          updateContent((draft) => void (draft.actions[index].href = value))
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              {content.metrics.map((metric, index) => (
+                <div key={index} className="rounded-lg border border-[#eadfcd] bg-white p-4">
+                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#8b7d68]">
+                    Stat {index + 1}
+                  </div>
+                  <div className="grid gap-3">
+                    <HomeEditorInput
+                      label="Number"
+                      value={metric.n}
+                      onChange={(value) =>
+                        updateContent((draft) => void (draft.metrics[index].n = value))
+                      }
+                    />
+                    <HomeEditorInput
+                      label="Label"
+                      value={metric.l}
+                      onChange={(value) =>
+                        updateContent((draft) => void (draft.metrics[index].l = value))
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <HomeAdvancedSettings>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <HomeEditorInput
+                  helper="Describe the banner image for screen readers and search engines."
+                  label="Banner Image Description"
+                  value={content.heroAlt}
+                  onChange={(value) => updateContent((draft) => void (draft.heroAlt = value))}
+                />
+                <HomeEditorInput
+                  label="Side Label"
+                  value={content.sideLabel}
+                  onChange={(value) => updateContent((draft) => void (draft.sideLabel = value))}
+                />
+                <HomeEditorMediaSelect
+                  label="Background Reference Image"
+                  options={mediaOptions}
+                  value={content.hiddenImage.src}
+                  onChange={(value) =>
+                    updateContent((draft) => void (draft.hiddenImage.src = value))
+                  }
+                />
+                <HomeEditorInput
+                  label="Reference Image Description"
+                  value={content.hiddenImage.alt}
+                  onChange={(value) =>
+                    updateContent((draft) => void (draft.hiddenImage.alt = value))
+                  }
+                />
+                <HomeVisibilityToggle
+                  checked={content.sections.hiddenImage}
+                  label="Keep reference image enabled"
+                  onChange={(checked) =>
+                    updateContent((draft) => void (draft.sections.hiddenImage = checked))
+                  }
+                />
+              </div>
+            </HomeAdvancedSettings>
+          </HomeEditorPanel>
+
+          <HomeEditorPanel
+            description="The short introduction that explains who Katha Digital is."
+            icon={Users}
+            title="About / Who We Are"
+            visible={content.sections.whoWeAre}
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.whoWeAre = checked))
             }
-          />
-          <HomeInput
-            label="YouTube Emphasis"
-            value={content.youtubeSection.emphasis}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.youtubeSection.emphasis = value))
-            }
-          />
-          <HomeInput
-            label="YouTube Suffix"
-            value={content.youtubeSection.suffix}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.youtubeSection.suffix = value))
-            }
-          />
-          {content.youtubeSection.videos.map((video, index) => (
-            <div key={index} className="grid gap-4 md:col-span-2 md:grid-cols-2">
-              <HomeInput
-                label={`Video ${index + 1} ID`}
-                value={video.id}
+          >
+            <div className="grid gap-4 lg:grid-cols-2">
+              <HomeEditorInput
+                label="Small Heading"
+                value={content.whoWeAre.eyebrow}
                 onChange={(value) =>
-                  updateContent((draft) => void (draft.youtubeSection.videos[index].id = value))
+                  updateContent((draft) => void (draft.whoWeAre.eyebrow = value))
                 }
               />
-              <HomeInput
-                label={`Video ${index + 1} Title`}
-                value={video.title}
+              <HomeEditorInput
+                label="Highlighted Phrase"
+                value={content.whoWeAre.emphasis}
                 onChange={(value) =>
-                  updateContent((draft) => void (draft.youtubeSection.videos[index].title = value))
+                  updateContent((draft) => void (draft.whoWeAre.emphasis = value))
+                }
+              />
+              <HomeEditorTextarea
+                label="Section Headline"
+                value={content.whoWeAre.title}
+                onChange={(value) => updateContent((draft) => void (draft.whoWeAre.title = value))}
+              />
+              <HomeEditorTextarea
+                label="Supporting Text"
+                value={content.whoWeAre.subtitle}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.whoWeAre.subtitle = value))
                 }
               />
             </div>
-          ))}
-        </div>
-      </HomeSubsection>
+          </HomeEditorPanel>
 
-      <HomeSubsection title="Testimonials & CTA">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="Testimonials Eyebrow"
-            value={content.testimonialsSection.eyebrow}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.testimonialsSection.eyebrow = value))
+          <HomeEditorialSectionPanel
+            content={content}
+            icon={Briefcase}
+            mediaOptions={mediaOptions}
+            section={content.servicesSection}
+            title="Services"
+            visible={content.sections.services}
+            onSectionChange={(section) =>
+              updateContent((draft) => void (draft.servicesSection = section))
+            }
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.services = checked))
             }
           />
-          <HomeInput
-            label="Testimonials Title"
-            value={content.testimonialsSection.title}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.testimonialsSection.title = value))
-            }
-          />
-          <HomeInput
-            label="Testimonials Emphasis"
-            value={content.testimonialsSection.emphasis}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.testimonialsSection.emphasis = value))
-            }
-          />
-          <HomeInput
-            label="Testimonials Suffix"
-            value={content.testimonialsSection.suffix}
-            onChange={(value) =>
-              updateContent((draft) => void (draft.testimonialsSection.suffix = value))
-            }
-          />
-          <HomeInput
-            label="CTA Eyebrow"
-            value={content.cta.eyebrow}
-            onChange={(value) => updateContent((draft) => void (draft.cta.eyebrow = value))}
-          />
-          <HomeInput
-            label="CTA Button Text"
-            value={content.cta.buttonText}
-            onChange={(value) => updateContent((draft) => void (draft.cta.buttonText = value))}
-          />
-          <HomeTextarea
-            label="CTA Title"
-            value={content.cta.title}
-            onChange={(value) => updateContent((draft) => void (draft.cta.title = value))}
-          />
-          <HomeTextarea
-            label="CTA Subtitle"
-            value={content.cta.subtitle}
-            onChange={(value) => updateContent((draft) => void (draft.cta.subtitle = value))}
-          />
-        </div>
-      </HomeSubsection>
 
-      <HomeSubsection title="Visibility">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {(Object.keys(content.sections) as Array<keyof HomeContentValue["sections"]>).map(
-            (section) => (
-              <HomeCheckbox
-                key={section}
-                label={section}
-                checked={content.sections[section]}
-                onChange={(checked) =>
-                  updateContent((draft) => void (draft.sections[section] = checked))
+          <HomeEditorialSectionPanel
+            content={content}
+            icon={ImageIcon}
+            mediaOptions={mediaOptions}
+            section={content.selectedWorkSection}
+            title="Portfolio / Selected Work"
+            visible={content.sections.selectedWork}
+            onSectionChange={(section) =>
+              updateContent((draft) => void (draft.selectedWorkSection = section))
+            }
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.selectedWork = checked))
+            }
+          />
+
+          <HomeEditorialSectionPanel
+            content={content}
+            icon={Video}
+            mediaOptions={mediaOptions}
+            section={content.productionsSection}
+            title="Productions"
+            visible={content.sections.productions}
+            onSectionChange={(section) =>
+              updateContent((draft) => void (draft.productionsSection = section))
+            }
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.productions = checked))
+            }
+          />
+
+          <HomeEditorialSectionPanel
+            content={content}
+            icon={Newspaper}
+            mediaOptions={mediaOptions}
+            section={content.newsSection}
+            title="News"
+            visible={content.sections.news}
+            onSectionChange={(section) =>
+              updateContent((draft) => void (draft.newsSection = section))
+            }
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.news = checked))
+            }
+          />
+
+          <HomeEditorPanel
+            description="The featured YouTube films embedded on the homepage."
+            icon={PlayCircle}
+            title="Featured YouTube Videos"
+            visible={content.sections.youtube}
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.youtube = checked))
+            }
+          >
+            <div className="grid gap-4 lg:grid-cols-2">
+              <HomeEditorInput
+                label="Small Heading"
+                value={content.youtubeSection.eyebrow}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.youtubeSection.eyebrow = value))
                 }
               />
-            ),
-          )}
+              <HomeEditorInput
+                label="Highlighted Word"
+                value={content.youtubeSection.emphasis}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.youtubeSection.emphasis = value))
+                }
+              />
+              <HomeEditorInput
+                label="Headline Start"
+                value={content.youtubeSection.title}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.youtubeSection.title = value))
+                }
+              />
+              <HomeEditorInput
+                label="Headline Ending"
+                value={content.youtubeSection.suffix}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.youtubeSection.suffix = value))
+                }
+              />
+            </div>
+            <div className="grid gap-4 xl:grid-cols-3">
+              {content.youtubeSection.videos.map((video, index) => (
+                <div key={index} className="rounded-lg border border-[#eadfcd] bg-white p-4">
+                  {video.id ? (
+                    <img
+                      src={`https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`}
+                      alt=""
+                      className="aspect-video w-full rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="grid aspect-video place-items-center rounded-md bg-[#f3ede2] text-sm text-[#8b7d68]">
+                      No preview yet
+                    </div>
+                  )}
+                  <div className="mt-4 grid gap-3">
+                    <HomeEditorInput
+                      label={`Video ${index + 1} Title`}
+                      value={video.title}
+                      onChange={(value) =>
+                        updateContent(
+                          (draft) => void (draft.youtubeSection.videos[index].title = value),
+                        )
+                      }
+                    />
+                    <HomeEditorInput
+                      helper="Use the short code from the YouTube URL."
+                      label={`Video ${index + 1} Share Code`}
+                      value={video.id}
+                      onChange={(value) =>
+                        updateContent(
+                          (draft) => void (draft.youtubeSection.videos[index].id = value),
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </HomeEditorPanel>
+
+          <HomeEditorPanel
+            description="The heading above client quotes pulled from the Testimonials collection."
+            icon={CheckCircle2}
+            title="Testimonials"
+            visible={content.sections.testimonials}
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.testimonials = checked))
+            }
+          >
+            <div className="grid gap-4 lg:grid-cols-2">
+              <HomeEditorInput
+                label="Small Heading"
+                value={content.testimonialsSection.eyebrow}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.testimonialsSection.eyebrow = value))
+                }
+              />
+              <HomeEditorInput
+                label="Highlighted Word"
+                value={content.testimonialsSection.emphasis}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.testimonialsSection.emphasis = value))
+                }
+              />
+              <HomeEditorInput
+                label="Headline Start"
+                value={content.testimonialsSection.title}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.testimonialsSection.title = value))
+                }
+              />
+              <HomeEditorInput
+                label="Headline Ending"
+                value={content.testimonialsSection.suffix}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.testimonialsSection.suffix = value))
+                }
+              />
+            </div>
+          </HomeEditorPanel>
+
+          <HomeEditorPanel
+            description="The final invitation panel at the bottom of the homepage."
+            icon={Edit3}
+            title="Call To Action"
+            visible={content.sections.cta}
+            onVisibilityChange={(checked) =>
+              updateContent((draft) => void (draft.sections.cta = checked))
+            }
+          >
+            <div className="rounded-lg border border-[#eadfcd] bg-[#17130d] p-5 text-white">
+              <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#efbc4a]">
+                {content.cta.eyebrow}
+              </div>
+              <div className="mt-3 max-w-2xl font-display text-3xl leading-tight">
+                {content.cta.title}
+              </div>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
+                {content.cta.subtitle}
+              </p>
+              <div className="mt-5 inline-flex rounded-full bg-[#efbc4a] px-4 py-2 text-sm font-bold text-[#17130d]">
+                {content.cta.buttonText}
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <HomeEditorInput
+                label="Small Heading"
+                value={content.cta.eyebrow}
+                onChange={(value) => updateContent((draft) => void (draft.cta.eyebrow = value))}
+              />
+              <HomeEditorInput
+                label="Button Text"
+                value={content.cta.buttonText}
+                onChange={(value) => updateContent((draft) => void (draft.cta.buttonText = value))}
+              />
+              <HomeEditorTextarea
+                label="Main Text"
+                value={content.cta.title}
+                onChange={(value) => updateContent((draft) => void (draft.cta.title = value))}
+              />
+              <HomeEditorTextarea
+                label="Supporting Text"
+                value={content.cta.subtitle}
+                onChange={(value) => updateContent((draft) => void (draft.cta.subtitle = value))}
+              />
+            </div>
+            <HomeAdvancedSettings>
+              <HomeEditorInput
+                label="Button Destination"
+                value={content.cta.to}
+                onChange={(value) => updateContent((draft) => void (draft.cta.to = value))}
+              />
+            </HomeAdvancedSettings>
+          </HomeEditorPanel>
+
+          <HomeEditorPanel
+            description="Search result text and social sharing copy for the homepage."
+            icon={Search}
+            title="SEO & Social Sharing"
+            visible
+          >
+            <div className="grid gap-4 lg:grid-cols-2">
+              <HomeEditorInput
+                helper="The title shown in browser tabs and search results."
+                label="SEO Page Title"
+                value={content.metadata.title}
+                onChange={(value) => updateContent((draft) => void (draft.metadata.title = value))}
+              />
+              <HomeEditorInput
+                helper="The title shown when the page is shared."
+                label="Social Sharing Title"
+                value={content.metadata.openGraph.title}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.metadata.openGraph.title = value))
+                }
+              />
+              <HomeEditorTextarea
+                helper="A concise summary for search results."
+                label="SEO Description"
+                value={content.metadata.description}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.metadata.description = value))
+                }
+              />
+              <HomeEditorTextarea
+                helper="A concise summary for shared links."
+                label="Social Sharing Description"
+                value={content.metadata.openGraph.description}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.metadata.openGraph.description = value))
+                }
+              />
+            </div>
+          </HomeEditorPanel>
         </div>
-      </HomeSubsection>
-    </AdminCard>
+      </section>
+    </div>
+  );
+}
+
+type HomeEditableSection =
+  | HomeContentValue["servicesSection"]
+  | HomeContentValue["selectedWorkSection"]
+  | HomeContentValue["productionsSection"]
+  | HomeContentValue["newsSection"];
+
+function HomeEditorialSectionPanel<T extends HomeEditableSection>({
+  icon: Icon,
+  onSectionChange,
+  onVisibilityChange,
+  section,
+  title,
+  visible,
+}: {
+  content: HomeContentValue;
+  icon: typeof Home;
+  mediaOptions: string[];
+  section: T;
+  title: string;
+  visible: boolean;
+  onSectionChange: (section: T) => void;
+  onVisibilityChange: (checked: boolean) => void;
+}) {
+  function update(key: keyof T, value: string | number) {
+    onSectionChange({ ...section, [key]: value } as T);
+  }
+
+  return (
+    <HomeEditorPanel
+      description="Edit this homepage section heading, link, and how many items it shows."
+      icon={Icon}
+      title={title}
+      visible={visible}
+      onVisibilityChange={onVisibilityChange}
+    >
+      <div className="rounded-lg border border-[#eadfcd] bg-white p-4">
+        <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#b98722]">
+          Heading Preview
+        </div>
+        <div className="mt-3 font-display text-3xl font-light text-[#17130d]">
+          {section.title} <em className="italic text-[#b98722]">{section.emphasis}</em>{" "}
+          {section.suffix}
+        </div>
+        {"subtitle" in section && (
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746c61]">{section.subtitle}</p>
+        )}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <HomeEditorInput
+          label="Small Heading"
+          value={section.eyebrow}
+          onChange={(value) => update("eyebrow", value)}
+        />
+        <HomeEditorInput
+          label="Highlighted Word"
+          value={section.emphasis}
+          onChange={(value) => update("emphasis", value)}
+        />
+        <HomeEditorInput
+          label="Headline Start"
+          value={section.title}
+          onChange={(value) => update("title", value)}
+        />
+        <HomeEditorInput
+          label="Headline Ending"
+          value={section.suffix}
+          onChange={(value) => update("suffix", value)}
+        />
+        {"subtitle" in section && (
+          <HomeEditorTextarea
+            label="Supporting Text"
+            value={section.subtitle}
+            onChange={(value) => update("subtitle" as keyof T, value)}
+          />
+        )}
+        {"cardLinkText" in section && (
+          <HomeEditorInput
+            label="Card Button Text"
+            value={section.cardLinkText}
+            onChange={(value) => update("cardLinkText" as keyof T, value)}
+          />
+        )}
+      </div>
+      <HomeAdvancedSettings>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {"linkText" in section && (
+            <HomeEditorInput
+              label="Button Text"
+              value={section.linkText}
+              onChange={(value) => update("linkText" as keyof T, value)}
+            />
+          )}
+          {"href" in section && (
+            <HomeEditorInput
+              label="Button Destination"
+              value={section.href}
+              onChange={(value) => update("href" as keyof T, value)}
+            />
+          )}
+          <HomeEditorInput
+            helper="Controls how many published items appear in this section."
+            label="Number of Items"
+            type="number"
+            value={section.limit}
+            onChange={(value) => update("limit", Number(value))}
+          />
+        </div>
+      </HomeAdvancedSettings>
+    </HomeEditorPanel>
+  );
+}
+
+function HomeEditorPanel({
+  children,
+  defaultOpen = false,
+  description,
+  icon: Icon,
+  onVisibilityChange,
+  title,
+  visible,
+}: {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  description: string;
+  icon: typeof Home;
+  title: string;
+  visible: boolean;
+  onVisibilityChange?: (checked: boolean) => void;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="group rounded-xl border border-[#e0d6c7] bg-white shadow-[0_16px_42px_-34px_rgba(23,19,13,0.5)]"
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-[#fffaf1] focus-visible:ring-2 focus-visible:ring-[#d7a33b] md:p-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[#f6e8c8] text-[#b98722]">
+          <Icon className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="font-display text-2xl font-light text-[#17130d]">{title}</span>
+            {visible ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#edf8ec] px-2.5 py-1 text-xs font-bold text-[#47723f]">
+                <Eye className="size-3.5" />
+                Visible
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#f4eee4] px-2.5 py-1 text-xs font-bold text-[#8b7d68]">
+                <EyeOff className="size-3.5" />
+                Hidden
+              </span>
+            )}
+          </span>
+          <span className="mt-1 block text-sm leading-6 text-[#746c61]">{description}</span>
+        </span>
+        <ChevronDown className="size-5 text-[#8b7d68] transition group-open:rotate-180" />
+      </summary>
+      <div className="space-y-5 border-t border-[#eee4d5] p-4 md:p-5">
+        {onVisibilityChange && (
+          <HomeVisibilityToggle
+            checked={visible}
+            label={
+              visible ? "Show this section on the homepage" : "Show this section on the homepage"
+            }
+            onChange={onVisibilityChange}
+          />
+        )}
+        {children}
+      </div>
+    </details>
+  );
+}
+
+function HomeAdvancedSettings({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="rounded-lg border border-[#eadfcd] bg-[#fffbf5]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[#3b352c] outline-none focus-visible:ring-2 focus-visible:ring-[#d7a33b] [&::-webkit-details-marker]:hidden">
+        Advanced Settings
+        <ChevronDown className="size-4 text-[#8b7d68]" />
+      </summary>
+      <div className="border-t border-[#eee4d5] p-4">{children}</div>
+    </details>
+  );
+}
+
+function HomeVisibilityToggle({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-4 rounded-lg border border-[#eadfcd] bg-[#fffdf8] p-4 text-sm font-semibold text-[#3b352c]">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="size-5 accent-[#d7a33b]"
+      />
+    </label>
+  );
+}
+
+function HomeEditorInput({
+  helper,
+  label,
+  onChange,
+  type = "text",
+  value,
+}: {
+  helper?: string;
+  label: string;
+  type?: "text" | "number";
+  value: string | number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-[#2d271f]">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b] focus:ring-2 focus:ring-[#f4dfab]"
+      />
+      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+    </label>
+  );
+}
+
+function HomeEditorTextarea({
+  helper,
+  label,
+  onChange,
+  value,
+}: {
+  helper?: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block lg:col-span-2">
+      <span className="mb-2 block text-sm font-bold text-[#2d271f]">{label}</span>
+      <textarea
+        value={value}
+        rows={4}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full resize-y rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm leading-6 text-[#2d271f] outline-none transition focus:border-[#d7a33b] focus:ring-2 focus:ring-[#f4dfab]"
+      />
+      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+    </label>
+  );
+}
+
+function HomeEditorSelect({
+  helper,
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  helper?: string;
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-[#2d271f]">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm capitalize text-[#2d271f] outline-none transition focus:border-[#d7a33b] focus:ring-2 focus:ring-[#f4dfab]"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+    </label>
+  );
+}
+
+function HomeEditorMediaSelect({
+  helper,
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  helper?: string;
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <HomeEditorSelect
+      helper={helper}
+      label={label}
+      value={value}
+      options={options.includes(value) ? options : [value, ...options]}
+      onChange={onChange}
+    />
+  );
+}
+
+function HomePreviewImage({ alt, label, src }: { alt: string; label: string; src: string }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-[#eadfcd] bg-[#17130d]">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-sm font-bold text-white">
+        <span>{label}</span>
+        <ImageIcon className="size-4 text-[#efbc4a]" />
+      </div>
+      <img src={src} alt={alt} className="aspect-[16/7] w-full object-cover" />
+    </div>
+  );
+}
+
+function HomeButtonPreview({
+  label,
+  variant,
+}: {
+  label: string;
+  variant: "primary" | "secondary" | "ghost";
+}) {
+  const className =
+    variant === "primary"
+      ? "bg-[#efbc4a] text-[#17130d]"
+      : variant === "secondary"
+        ? "border border-[#d7a33b] bg-white text-[#17130d]"
+        : "border border-[#e6dccd] bg-[#faf8f2] text-[#3b352c]";
+
+  return (
+    <div
+      className={`inline-flex max-w-full items-center rounded-full px-4 py-2 text-sm font-bold ${className}`}
+    >
+      <span className="truncate">{label}</span>
+    </div>
   );
 }
 
@@ -4998,17 +5633,408 @@ function formatAdminDateTime(value: string) {
 }
 
 function SettingsSection() {
+  const [settings, setSettings] = useState<SiteSettingsValue | null>(null);
+  const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/admin/settings");
+        const payload = (await response.json().catch(() => null)) as SettingsResponse | null;
+
+        if (!payload) {
+          throw new Error(
+            "Settings API returned a non-JSON response. Restart the dev server and try again.",
+          );
+        }
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.ok ? "Unable to load settings." : payload.error.message);
+        }
+
+        if (!cancelled) {
+          setSettings(payload.data.settings);
+          setMediaOptions(payload.data.mediaOptions);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load settings.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function updateSetting(key: keyof SiteSettingsValue, value: string) {
+    setSettings((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  async function saveSettings() {
+    if (!settings) return;
+
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        ok: boolean;
+        data?: { settings: SiteSettingsValue };
+        error?: { message: string };
+      } | null;
+
+      if (!payload) {
+        throw new Error(
+          "Settings API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save settings.");
+      }
+
+      setSettings(payload.data.settings);
+      setMessage("Settings saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save settings.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function uploadSettingImage(file: File, key: "logoSrc" | "faviconSrc") {
+    const formData = new FormData();
+    formData.set("file", file);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/settings/media", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        ok: boolean;
+        data?: { src: string };
+        error?: { message: string };
+      } | null;
+
+      if (!payload) {
+        throw new Error(
+          "Settings media API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to upload image.");
+      }
+
+      updateSetting(key, payload.data.src);
+      setMediaOptions((current) =>
+        current.includes(payload.data.src) ? current : [payload.data.src, ...current],
+      );
+      setMessage("Image uploaded. Save settings to publish this change.");
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Unable to upload image.");
+    }
+  }
+
+  function resetMedia(key: "logoSrc" | "faviconSrc", value: string) {
+    const confirmed = window.confirm("Reset this media selection to the original asset?");
+    if (!confirmed) return;
+
+    updateSetting(key, value);
+    setMessage("Media selection reset. Save settings to publish this change.");
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-56 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <div className="h-40 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-40 animate-pulse rounded-lg bg-[#f4eee4]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <AdminCard>
+        <h2 className="font-display text-3xl font-light">Settings unavailable</h2>
+        <p className="mt-3 text-sm leading-6 text-[#746c61]">
+          {error || "Unable to load settings."}
+        </p>
+      </AdminCard>
+    );
+  }
+
   return (
-    <FormGrid
-      title="Brand Settings"
-      description="Frontend-only placeholder settings for identity, contact, and profile details."
-      fields={[
-        ["Brand Name", "Katha Digital"],
-        ["Admin Email", "hello@kathadigital.com"],
-        ["Contact Phone", "+977 9861078220"],
-        ["Studio Location", "Madhyapur Thimi, Bhaktapur, Nepal"],
-      ]}
-    />
+    <AdminCard>
+      <SectionHeader
+        title="Settings"
+        description="Manage the existing website identity, contact details, media, and SEO defaults."
+        action={isSaving ? "Saving..." : "Save"}
+        icon={Save}
+      />
+
+      {message && (
+        <div className="mt-6 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="mt-6 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          onClick={saveSettings}
+          disabled={isSaving}
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Save className="size-4" />
+          {isSaving ? "Saving..." : "Save Settings"}
+        </button>
+      </div>
+
+      <HomeSubsection title="General Settings">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Brand Name"
+            value={settings.brandName}
+            onChange={(value) => updateSetting("brandName", value)}
+          />
+          <HomeInput
+            label="Admin Brand"
+            value={settings.adminBrand}
+            onChange={(value) => updateSetting("adminBrand", value)}
+          />
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Company Information">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Studio Location"
+            value={settings.office}
+            onChange={(value) => updateSetting("office", value)}
+          />
+          <HomeInput
+            label="Footer Location"
+            value={settings.footerLocation}
+            onChange={(value) => updateSetting("footerLocation", value)}
+          />
+        </div>
+        <HomeTextarea
+          label="Footer Description"
+          value={settings.footerDescription}
+          onChange={(value) => updateSetting("footerDescription", value)}
+        />
+        <HomeTextarea
+          label="Footer Subtext"
+          value={settings.footerSubtext}
+          onChange={(value) => updateSetting("footerSubtext", value)}
+        />
+      </HomeSubsection>
+
+      <HomeSubsection title="Contact Information">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Admin Email"
+            value={settings.adminEmail}
+            onChange={(value) => updateSetting("adminEmail", value)}
+          />
+          <HomeInput
+            label="Public Email"
+            value={settings.email}
+            onChange={(value) => updateSetting("email", value)}
+          />
+          <HomeInput
+            label="Contact Phone"
+            value={settings.phone}
+            onChange={(value) => updateSetting("phone", value)}
+          />
+          <HomeInput
+            label="WhatsApp"
+            value={settings.whatsapp}
+            onChange={(value) => updateSetting("whatsapp", value)}
+          />
+        </div>
+        <HomeTextarea
+          label="Map Embed URL"
+          value={settings.mapSrc}
+          onChange={(value) => updateSetting("mapSrc", value)}
+        />
+      </HomeSubsection>
+
+      <HomeSubsection title="Social Media Links">
+        <div className="grid gap-5 md:grid-cols-3">
+          <HomeInput
+            label="Instagram URL"
+            value={settings.instagramUrl}
+            onChange={(value) => updateSetting("instagramUrl", value)}
+          />
+          <HomeInput
+            label="YouTube URL"
+            value={settings.youtubeUrl}
+            onChange={(value) => updateSetting("youtubeUrl", value)}
+          />
+          <HomeInput
+            label="Facebook URL"
+            value={settings.facebookUrl}
+            onChange={(value) => updateSetting("facebookUrl", value)}
+          />
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Branding (Logo & Favicon)">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SettingsMediaField
+            label="Logo"
+            value={settings.logoSrc}
+            options={mediaOptions}
+            onChange={(value) => updateSetting("logoSrc", value)}
+            onUpload={(file) => uploadSettingImage(file, "logoSrc")}
+            onReset={() => resetMedia("logoSrc", "/katha-media/kathadigital-logo-cutout.png")}
+          />
+          <SettingsMediaField
+            label="Favicon"
+            value={settings.faviconSrc}
+            options={mediaOptions}
+            onChange={(value) => updateSetting("faviconSrc", value)}
+            onUpload={(file) => uploadSettingImage(file, "faviconSrc")}
+            onReset={() => resetMedia("faviconSrc", "/katha-media/kathadigital-logo.png")}
+          />
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="SEO Settings">
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Site Title"
+            value={settings.siteTitle}
+            onChange={(value) => updateSetting("siteTitle", value)}
+          />
+          <HomeInput
+            label="Open Graph Title"
+            value={settings.openGraphTitle}
+            onChange={(value) => updateSetting("openGraphTitle", value)}
+          />
+        </div>
+        <HomeTextarea
+          label="Site Description"
+          value={settings.siteDescription}
+          onChange={(value) => updateSetting("siteDescription", value)}
+        />
+        <HomeTextarea
+          label="Open Graph Description"
+          value={settings.openGraphDescription}
+          onChange={(value) => updateSetting("openGraphDescription", value)}
+        />
+        <div className="grid gap-5 md:grid-cols-2">
+          <HomeInput
+            label="Twitter Site"
+            value={settings.twitterSite}
+            onChange={(value) => updateSetting("twitterSite", value)}
+          />
+          <HomeMediaSelect
+            label="Open Graph Image"
+            value={settings.openGraphImage}
+            options={mediaOptions}
+            onChange={(value) => updateSetting("openGraphImage", value)}
+          />
+        </div>
+      </HomeSubsection>
+
+      <HomeSubsection title="Website Preferences">
+        <HomeInput
+          label="Footer Credit"
+          value={settings.footerCredit}
+          onChange={(value) => updateSetting("footerCredit", value)}
+        />
+      </HomeSubsection>
+    </AdminCard>
+  );
+}
+
+function SettingsMediaField({
+  label,
+  onChange,
+  onReset,
+  onUpload,
+  options,
+  value,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  onUpload: (file: File) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4">
+      <HomeMediaSelect label={label} value={value} options={options} onChange={onChange} />
+      <div className="mt-4 overflow-hidden rounded-lg border border-[#ddd6c8] bg-white p-4">
+        {value ? (
+          <img src={value} alt={label} className="h-28 w-full object-contain" />
+        ) : (
+          <div className="grid h-28 place-items-center text-sm text-[#746c61]">
+            No media selected
+          </div>
+        )}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d]">
+          Upload Image
+          <input
+            type="file"
+            accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) onUpload(file);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={onReset}
+          className="rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+        >
+          Reset Media
+        </button>
+      </div>
+    </div>
   );
 }
 
