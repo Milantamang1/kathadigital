@@ -40,6 +40,7 @@ import {
   Share2,
   Sparkles,
   Trash2,
+  UploadCloud,
   Users,
   Video,
 } from "lucide-react";
@@ -161,6 +162,15 @@ const dashboardStatIcons = {
   "Booking Leads": CalendarDays,
   "Portfolio Items": Gauge,
 } satisfies Record<DashboardStat["label"], typeof FileText>;
+
+const cmsImageUploadTypes = [
+  "image/avif",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+const cmsImageUploadMaxSize = 2 * 1024 * 1024;
 
 function sectionFromSearchParam(value: string | null): SectionKey {
   const match = menuItems.find((item) => item.label === value);
@@ -617,6 +627,9 @@ function HomeContentSection() {
       mediaOptions={mediaOptions}
       message={message}
       onSave={handleSave}
+      onMediaUploaded={(src) =>
+        setMediaOptions((current) => (current.includes(src) ? current : [src, ...current]))
+      }
       setStatus={setStatus}
       status={status}
       updateContent={updateContent}
@@ -631,6 +644,7 @@ type HomeContentEditorProps = {
   mediaOptions: string[];
   message: string;
   onSave: () => void;
+  onMediaUploaded: (src: string) => void;
   setStatus: (status: "draft" | "published" | "archived") => void;
   status: "draft" | "published" | "archived";
   updateContent: (mutator: (draft: HomeContentValue) => void) => void;
@@ -643,6 +657,7 @@ function HomeContentEditor({
   mediaOptions,
   message,
   onSave,
+  onMediaUploaded,
   setStatus,
   status,
   updateContent,
@@ -747,6 +762,10 @@ function HomeContentEditor({
                 options={mediaOptions}
                 value={content.heroImg}
                 onChange={(value) => updateContent((draft) => void (draft.heroImg = value))}
+                onUploaded={(src) => {
+                  onMediaUploaded(src);
+                  updateContent((draft) => void (draft.heroImg = src));
+                }}
               />
               <HomeEditorInput
                 helper="A short line above the main headline."
@@ -847,6 +866,10 @@ function HomeContentEditor({
                   onChange={(value) =>
                     updateContent((draft) => void (draft.hiddenImage.src = value))
                   }
+                  onUploaded={(src) => {
+                    onMediaUploaded(src);
+                    updateContent((draft) => void (draft.hiddenImage.src = src));
+                  }}
                 />
                 <HomeEditorInput
                   label="Reference Image Description"
@@ -1479,6 +1502,7 @@ function HomeEditorMediaSelect({
   helper,
   label,
   onChange,
+  onUploaded,
   options,
   value,
 }: {
@@ -1487,15 +1511,207 @@ function HomeEditorMediaSelect({
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  onUploaded?: (src: string) => void;
 }) {
   return (
-    <HomeEditorSelect
-      helper={helper}
-      label={label}
-      value={value}
-      options={options.includes(value) ? options : [value, ...options]}
-      onChange={onChange}
-    />
+    <div className="grid gap-3">
+      <HomeEditorSelect
+        helper={helper}
+        label={label}
+        value={value}
+        options={options.includes(value) ? options : [value, ...options]}
+        onChange={onChange}
+      />
+      {onUploaded && (
+        <HomeImageUploadDropzone currentValue={value} fieldLabel={label} onUploaded={onUploaded} />
+      )}
+    </div>
+  );
+}
+
+function HomeImageUploadDropzone({
+  currentValue,
+  fieldLabel,
+  onUploaded,
+}: {
+  currentValue: string;
+  fieldLabel: string;
+  onUploaded: (src: string) => void;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadMessage, setUploadMessage] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
+
+  function validateImageFile(file: File) {
+    if (!cmsImageUploadTypes.includes(file.type as (typeof cmsImageUploadTypes)[number])) {
+      return "Please upload an AVIF, GIF, JPG, PNG, or WebP image.";
+    }
+
+    if (file.size > cmsImageUploadMaxSize) {
+      return "Image uploads must be 2MB or smaller.";
+    }
+
+    return "";
+  }
+
+  function uploadImage(file: File) {
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setUploadError(validationError);
+      setUploadMessage("");
+      setProgress(0);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setLocalPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return previewUrl;
+    });
+    setIsUploading(true);
+    setProgress(0);
+    setUploadError("");
+    setUploadMessage("Uploading image...");
+
+    const formData = new FormData();
+    formData.set("file", file);
+    const request = new XMLHttpRequest();
+
+    request.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      setProgress(Math.round((event.loaded / event.total) * 100));
+    };
+
+    request.onload = () => {
+      setIsUploading(false);
+
+      try {
+        const payload = JSON.parse(request.responseText || "{}") as {
+          ok?: boolean;
+          data?: { src?: string };
+          error?: { message?: string };
+        };
+
+        if (request.status < 200 || request.status >= 300 || !payload.ok || !payload.data?.src) {
+          throw new Error(payload.error?.message ?? "Unable to upload image.");
+        }
+
+        setProgress(100);
+        setUploadMessage("Image uploaded and selected.");
+        setUploadError("");
+        onUploaded(payload.data.src);
+      } catch (uploadParseError) {
+        setProgress(0);
+        setUploadMessage("");
+        setUploadError(
+          uploadParseError instanceof Error ? uploadParseError.message : "Unable to upload image.",
+        );
+      }
+    };
+
+    request.onerror = () => {
+      setIsUploading(false);
+      setProgress(0);
+      setUploadMessage("");
+      setUploadError("Upload failed. Please check your connection and try again.");
+    };
+
+    request.open("POST", "/api/admin/settings/media");
+    request.send(formData);
+  }
+
+  function handleFiles(files: FileList | null) {
+    const file = files?.[0];
+    if (file) uploadImage(file);
+  }
+
+  const previewSrc = localPreview || currentValue;
+
+  return (
+    <div
+      onDragEnter={(event) => {
+        event.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        setIsDragging(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setIsDragging(false);
+        handleFiles(event.dataTransfer.files);
+      }}
+      className={`rounded-lg border border-dashed p-3 transition ${
+        isDragging ? "border-[#d7a33b] bg-[#fff8e8]" : "border-[#dfd3c2] bg-[#fffdf8]"
+      }`}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="h-20 w-full overflow-hidden rounded-md border border-[#eadfcd] bg-[#f4eee4] sm:w-28">
+          {previewSrc ? (
+            <img src={previewSrc} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full place-items-center text-[#8b7d68]">
+              <ImageIcon className="size-5" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#17130d] px-4 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_-18px_rgba(23,19,13,0.8)] transition hover:bg-[#2b251b]">
+              <UploadCloud className="size-4" />
+              Upload from Device
+              <input
+                type="file"
+                accept={cmsImageUploadTypes.join(",")}
+                className="sr-only"
+                onChange={(event) => {
+                  handleFiles(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+            <span className="text-xs leading-5 text-[#746c61]">
+              Drop an image here for {fieldLabel.toLowerCase()}.
+            </span>
+          </div>
+          {(isUploading || progress > 0) && (
+            <div className="mt-3">
+              <div className="h-2 overflow-hidden rounded-full bg-[#eee4d5]">
+                <div
+                  className="h-full rounded-full bg-[#efbc4a] transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="mt-1 text-xs font-semibold text-[#8b7d68]">{progress}%</div>
+            </div>
+          )}
+          {(uploadMessage || uploadError) && (
+            <div
+              className={`mt-2 text-xs font-semibold ${
+                uploadError ? "text-[#9b4b35]" : "text-[#47723f]"
+              }`}
+              role="status"
+            >
+              {uploadError || uploadMessage}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
