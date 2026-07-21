@@ -3438,6 +3438,7 @@ function ProductionsContentSection() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isListCollapsed, setIsListCollapsed] = useState(false);
 
   const filteredProductions = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -3630,7 +3631,7 @@ function ProductionsContentSection() {
     return (
       <AdminCard>
         <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
-        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+        <div className="mt-6 grid gap-5 lg:grid-cols-[350px_1fr]">
           <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
           <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
@@ -3639,129 +3640,241 @@ function ProductionsContentSection() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+    <div
+      className={`grid gap-6 transition-all duration-300 ${
+        isListCollapsed
+          ? "xl:grid-cols-[68px_1fr]"
+          : "xl:grid-cols-[350px_1fr] 2xl:grid-cols-[380px_1fr]"
+      }`}
+    >
       <AdminCard>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
-          <div>
-            <h2 className="font-display text-3xl font-light text-zinc-100">Productions</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Manage original productions, videos, episodes, and upcoming formats.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={startNewProduction}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300"
-          >
-            <Plus className="size-4" />
-            Add Production
-          </button>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <HomeInput label="Search" value={search} onChange={setSearch} />
-          <HomeSelect
-            label="Filter"
-            value={filter}
-            options={[
-              "All",
-              "published",
-              "draft",
-              "archived",
-              ...productionTypeOptions.filter((type) => type !== "All"),
-            ]}
-            onChange={setFilter}
-          />
-        </div>
-
-        {message && (
-          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
-            {message}
-          </div>
-        )}
-        {error && (
-          <div className="mt-5 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-6 space-y-3">
-          {filteredProductions.length === 0 ? (
-            <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
-              No productions match this search.
-            </div>
-          ) : (
-            filteredProductions.map((production) => (
-              <article
-                key={production.id}
-                draggable
-                onDragStart={() => setDraggedId(production.id)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={() => void reorderProductions(draggedId, production.id)}
-                className={`rounded-lg border p-3 transition-all ${
-                  draft.id === production.id
-                    ? "border-amber-500/60 bg-amber-500/10"
-                    : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
-                }`}
-              >
+        {isListCollapsed ? (
+          <div className="flex flex-col items-center gap-4 py-2">
+            <button
+              type="button"
+              onClick={() => setIsListCollapsed(false)}
+              title="Expand Productions List"
+              aria-label="Expand Productions List"
+              className="flex size-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400 shadow-lg transition-all duration-200 hover:border-amber-500/60 hover:bg-amber-500/20 hover:scale-105"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={startNewProduction}
+              title="Add Production"
+              aria-label="Add Production"
+              className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-black shadow-md transition-all hover:scale-105"
+            >
+              <Plus className="size-5" />
+            </button>
+            <div className="my-2 h-px w-full bg-zinc-800" />
+            <div className="flex flex-col gap-2">
+              {productions.map((production) => (
                 <button
+                  key={production.id}
                   type="button"
                   onClick={() => editProduction(production)}
-                  className="block w-full text-left"
+                  title={production.title}
+                  className={`group relative size-10 overflow-hidden rounded-lg border transition-all ${
+                    draft.id === production.id
+                      ? "border-amber-500 ring-2 ring-amber-500/40"
+                      : "border-zinc-800 opacity-60 hover:border-zinc-600 hover:opacity-100"
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-14 w-16 shrink-0 place-items-center rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-400">
-                      <Video className="size-5" />
+                  {production.image ? (
+                    <img src={production.image} alt={production.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center bg-zinc-900 text-amber-400">
+                      <Video className="size-4" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-zinc-100">
-                        {production.title}
-                      </div>
-                      <div className="mt-1 text-xs text-zinc-400">
-                        {production.type} / {production.status}
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </button>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => editProduction(production)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
-                  >
-                    <Edit3 className="size-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteProduction(production)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
-                  >
-                    <Trash2 className="size-3.5" />
-                    Delete
-                  </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-2xl font-light text-zinc-100">Productions</h2>
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-400">
+                    {productions.length}
+                  </span>
                 </div>
-              </article>
-            ))
-          )}
-        </div>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Manage original productions, videos, episodes, and upcoming formats.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsListCollapsed(true)}
+                title="Collapse Panel"
+                aria-label="Collapse Productions List"
+                className="flex size-8 items-center justify-center rounded-lg border border-zinc-800 bg-[#16161c] text-zinc-400 transition-all hover:border-amber-500/40 hover:text-amber-400"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={startNewProduction}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 px-4 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:from-amber-400 hover:to-yellow-400 active:scale-[0.98]"
+              >
+                <Plus className="size-4" />
+                Add Production
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <HomeInput label="Search" value={search} onChange={setSearch} />
+              <HomeSelect
+                label="Filter"
+                value={filter}
+                options={[
+                  "All",
+                  "published",
+                  "draft",
+                  "archived",
+                  ...productionTypeOptions.filter((type) => type !== "All"),
+                ]}
+                onChange={setFilter}
+              />
+            </div>
+
+            {message && (
+              <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs font-semibold text-amber-300">
+                {message}
+              </div>
+            )}
+            {error && (
+              <div className="mt-4 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2.5 text-xs font-semibold text-red-300">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-4 space-y-3 max-h-[620px] overflow-y-auto pr-1">
+              {filteredProductions.length === 0 ? (
+                <div className="rounded-xl border border-[#272730] bg-[#181820] p-5 text-xs text-zinc-400 text-center">
+                  No productions match this search.
+                </div>
+              ) : (
+                filteredProductions.map((production) => (
+                  <article
+                    key={production.id}
+                    draggable
+                    onDragStart={() => setDraggedId(production.id)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => void reorderProductions(draggedId, production.id)}
+                    onClick={() => editProduction(production)}
+                    className={`group relative flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-3.5 sm:p-4 transition-all duration-200 hover:-translate-y-0.5 ${
+                      draft.id === production.id
+                        ? "border-amber-500/80 bg-amber-500/10 shadow-[0_4px_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30"
+                        : "border-zinc-800/80 bg-[#131318] hover:border-amber-500/40 hover:bg-[#181820] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-900 shadow-inner">
+                        {production.image ? (
+                          <img
+                            src={production.image}
+                            alt=""
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="grid h-full w-full place-items-center text-amber-400">
+                            <Video className="size-5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-zinc-100 transition-colors group-hover:text-amber-300">
+                          {production.title}
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-zinc-400 font-medium">
+                            {production.type}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
+                              production.status === "published"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : production.status === "draft"
+                                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                                : "border-zinc-700 bg-zinc-800 text-zinc-400"
+                            }`}
+                          >
+                            <span
+                              className={`size-1.5 rounded-full ${
+                                production.status === "published"
+                                  ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"
+                                  : production.status === "draft"
+                                  ? "bg-amber-400"
+                                  : "bg-zinc-400"
+                              }`}
+                            />
+                            {production.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteProduction(production);
+                      }}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-1.5 text-xs font-bold text-red-400 transition-all duration-200 hover:border-red-500/60 hover:bg-red-900/50"
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </AdminCard>
 
       <AdminCard>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="font-display text-3xl font-light text-zinc-100">
-              {draft.id ? "Edit Production" : "Add Production"}
-            </h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Keep production copy, episodes, videos, and publishing status aligned with the site.
-            </p>
+        <div className="flex flex-col gap-4 border-b border-zinc-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            {isListCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsListCollapsed(false)}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-400 shadow-sm transition hover:bg-amber-500/20"
+              >
+                <ChevronRight className="size-4" />
+                Expand List ({productions.length})
+              </button>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-3xl font-light text-zinc-100">
+                  {draft.id ? "Edit Production" : "Add Production"}
+                </h2>
+                {draft.id && (
+                  <span className="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-0.5 text-xs text-zinc-300">
+                    ID: {draft.id.slice(0, 8)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-zinc-400">
+                Keep production copy, episodes, videos, and publishing status aligned with the site.
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={saveProduction}
             disabled={isSaving}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+            className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:from-amber-400 hover:to-yellow-400 disabled:opacity-60 active:scale-[0.98]"
           >
             <Save className="size-4" />
             {isSaving ? "Saving..." : "Save"}
@@ -3804,32 +3917,39 @@ function ProductionsContentSection() {
         </HomeSubsection>
 
         <HomeSubsection title="Images & Videos">
-          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
-            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
-              {draft.youtubeId ? (
-                <img
-                  src={`https://i.ytimg.com/vi/${draft.youtubeId}/hqdefault.jpg`}
-                  alt=""
-                  className="aspect-video w-full rounded-md object-cover"
-                />
-              ) : draft.image ? (
-                <img
-                  src={draft.image}
-                  alt=""
-                  className={`aspect-video w-full rounded-md object-cover ${draft.position}`}
-                />
-              ) : (
-                <div className="grid aspect-video place-items-center rounded-md bg-[#17130d] text-[#efbc4a]">
-                  <Video className="size-8" />
-                </div>
-              )}
+          <div className="grid gap-6 md:grid-cols-[220px_1fr] xl:grid-cols-[260px_1fr]">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-zinc-400">Live Preview</span>
+              <div className="overflow-hidden rounded-xl border border-zinc-800 bg-[#0e0e11] p-3 shadow-lg">
+                {draft.youtubeId ? (
+                  <img
+                    src={`https://i.ytimg.com/vi/${draft.youtubeId}/hqdefault.jpg`}
+                    alt=""
+                    className="aspect-video w-full rounded-lg object-cover shadow-md"
+                  />
+                ) : draft.image ? (
+                  <img
+                    src={draft.image}
+                    alt=""
+                    className={`aspect-video w-full rounded-lg object-cover shadow-md ${draft.position}`}
+                  />
+                ) : (
+                  <div className="grid aspect-video place-items-center rounded-lg bg-zinc-900 text-amber-400">
+                    <Video className="size-8" />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid gap-5">
-              <HomeMediaSelect
+              <HomeEditorMediaSelect
                 label="Poster Image"
                 value={draft.image}
                 options={mediaOptions}
                 onChange={(value) => updateDraft((next) => void (next.image = value))}
+                onUploaded={(src) => {
+                  setMediaOptions((current) => (current.includes(src) ? current : [src, ...current]));
+                  updateDraft((next) => void (next.image = src));
+                }}
               />
               <HomeInput
                 label="Image Position"
@@ -3855,7 +3975,7 @@ function ProductionsContentSection() {
             {draft.episodes.map((episode, index) => (
               <div
                 key={`${episode.num}-${index}`}
-                className="grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
+                className="grid gap-4 rounded-xl border border-zinc-800/80 bg-[#141419] p-4 md:grid-cols-2"
               >
                 <HomeInput
                   label={`Episode ${index + 1} Number`}
@@ -3888,7 +4008,7 @@ function ProductionsContentSection() {
                 <button
                   type="button"
                   onClick={() => updateDraft((next) => void next.episodes.splice(index, 1))}
-                  className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
                 >
                   <Trash2 className="size-3.5" />
                   Remove Episode
@@ -3903,7 +4023,7 @@ function ProductionsContentSection() {
                 (next) => void next.episodes.push(emptyProductionEpisode(next.episodes.length)),
               )
             }
-            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-xs font-bold text-zinc-200 transition hover:bg-zinc-700"
           >
             <Plus className="size-4" />
             Add Episode
@@ -3948,14 +4068,14 @@ function ProductionsContentSection() {
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "published"))}
-              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 transition hover:bg-amber-500/20"
             >
               Publish
             </button>
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "draft"))}
-              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-bold text-zinc-300 transition hover:bg-zinc-700"
             >
               Unpublish
             </button>
@@ -4014,6 +4134,7 @@ function NewsContentSection() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isListCollapsed, setIsListCollapsed] = useState(false);
 
   const filteredPosts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -4199,7 +4320,7 @@ function NewsContentSection() {
     return (
       <AdminCard>
         <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
-        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+        <div className="mt-6 grid gap-5 lg:grid-cols-[350px_1fr]">
           <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
           <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
@@ -4208,125 +4329,229 @@ function NewsContentSection() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+    <div
+      className={`grid gap-6 transition-all duration-300 ${
+        isListCollapsed
+          ? "xl:grid-cols-[68px_1fr]"
+          : "xl:grid-cols-[350px_1fr] 2xl:grid-cols-[380px_1fr]"
+      }`}
+    >
       <AdminCard>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
-          <div>
-            <h2 className="font-display text-3xl font-light text-zinc-100">News</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Manage journal posts shown on the public News page.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={startNewPost}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300"
-          >
-            <Plus className="size-4" />
-            Add Post
-          </button>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <HomeInput label="Search" value={search} onChange={setSearch} />
-          <HomeSelect
-            label="Filter"
-            value={filter}
-            options={[
-              "All",
-              "published",
-              "draft",
-              "archived",
-              ...categories.filter((item) => item !== "All"),
-            ]}
-            onChange={setFilter}
-          />
-        </div>
-
-        {message && (
-          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
-            {message}
-          </div>
-        )}
-        {error && (
-          <div className="mt-5 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-6 space-y-3">
-          {filteredPosts.length === 0 ? (
-            <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
-              No news posts match this search.
-            </div>
-          ) : (
-            filteredPosts.map((post) => (
-              <article
-                key={post.id}
-                draggable
-                onDragStart={() => setDraggedId(post.id)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={() => void reorderPosts(draggedId, post.id)}
-                className={`rounded-lg border p-3 transition-all ${
-                  draft.id === post.id
-                    ? "border-amber-500/60 bg-amber-500/10"
-                    : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
-                }`}
-              >
+        {isListCollapsed ? (
+          <div className="flex flex-col items-center gap-4 py-2">
+            <button
+              type="button"
+              onClick={() => setIsListCollapsed(false)}
+              title="Expand News List"
+              aria-label="Expand News List"
+              className="flex size-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400 shadow-lg transition-all duration-200 hover:border-amber-500/60 hover:bg-amber-500/20 hover:scale-105"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={startNewPost}
+              title="Add Post"
+              aria-label="Add Post"
+              className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-black shadow-md transition-all hover:scale-105"
+            >
+              <Plus className="size-5" />
+            </button>
+            <div className="my-2 h-px w-full bg-zinc-800" />
+            <div className="flex flex-col gap-2">
+              {posts.map((post) => (
                 <button
+                  key={post.id}
                   type="button"
                   onClick={() => editPost(post)}
-                  className="block w-full text-left"
+                  title={post.title}
+                  className={`group relative size-10 overflow-hidden rounded-lg border transition-all ${
+                    draft.id === post.id
+                      ? "border-amber-500 ring-2 ring-amber-500/40"
+                      : "border-zinc-800 opacity-60 hover:border-zinc-600 hover:opacity-100"
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <img src={post.image} alt="" className="h-14 w-16 rounded-md object-cover" />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-zinc-100">{post.title}</div>
-                      <div className="mt-1 text-xs text-zinc-400">
-                        {post.category} / {post.status}
+                  <img src={post.image} alt={post.title} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-2xl font-light text-zinc-100">News</h2>
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-400">
+                    {posts.length}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Manage journal posts shown on the public News page.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsListCollapsed(true)}
+                title="Collapse Panel"
+                aria-label="Collapse News List"
+                className="flex size-8 items-center justify-center rounded-lg border border-zinc-800 bg-[#16161c] text-zinc-400 transition-all hover:border-amber-500/40 hover:text-amber-400"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={startNewPost}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 px-4 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:from-amber-400 hover:to-yellow-400 active:scale-[0.98]"
+              >
+                <Plus className="size-4" />
+                Add Post
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <HomeInput label="Search" value={search} onChange={setSearch} />
+              <HomeSelect
+                label="Filter"
+                value={filter}
+                options={[
+                  "All",
+                  "published",
+                  "draft",
+                  "archived",
+                  ...categories.filter((item) => item !== "All"),
+                ]}
+                onChange={setFilter}
+              />
+            </div>
+
+            {message && (
+              <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs font-semibold text-amber-300">
+                {message}
+              </div>
+            )}
+            {error && (
+              <div className="mt-4 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2.5 text-xs font-semibold text-red-300">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-4 space-y-3 max-h-[620px] overflow-y-auto pr-1">
+              {filteredPosts.length === 0 ? (
+                <div className="rounded-xl border border-[#272730] bg-[#181820] p-5 text-xs text-zinc-400 text-center">
+                  No news posts match this search.
+                </div>
+              ) : (
+                filteredPosts.map((post) => (
+                  <article
+                    key={post.id}
+                    draggable
+                    onDragStart={() => setDraggedId(post.id)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => void reorderPosts(draggedId, post.id)}
+                    onClick={() => editPost(post)}
+                    className={`group relative flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-3.5 sm:p-4 transition-all duration-200 hover:-translate-y-0.5 ${
+                      draft.id === post.id
+                        ? "border-amber-500/80 bg-amber-500/10 shadow-[0_4px_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30"
+                        : "border-zinc-800/80 bg-[#131318] hover:border-amber-500/40 hover:bg-[#181820] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-900 shadow-inner">
+                        <img
+                          src={post.image}
+                          alt=""
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-zinc-100 transition-colors group-hover:text-amber-300">
+                          {post.title}
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-zinc-400 font-medium">
+                            {post.category}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
+                              post.status === "published"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : post.status === "draft"
+                                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                                : "border-zinc-700 bg-zinc-800 text-zinc-400"
+                            }`}
+                          >
+                            <span
+                              className={`size-1.5 rounded-full ${
+                                post.status === "published"
+                                  ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"
+                                  : post.status === "draft"
+                                  ? "bg-amber-400"
+                                  : "bg-zinc-400"
+                              }`}
+                            />
+                            {post.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => editPost(post)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
-                  >
-                    <Edit3 className="size-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deletePost(post)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
-                  >
-                    <Trash2 className="size-3.5" />
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deletePost(post);
+                      }}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-1.5 text-xs font-bold text-red-400 transition-all duration-200 hover:border-red-500/60 hover:bg-red-900/50"
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </AdminCard>
 
       <AdminCard>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="font-display text-3xl font-light text-zinc-100">
-              {draft.id ? "Edit News Post" : "Add News Post"}
-            </h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Keep titles, excerpts, categories, images, and publishing status accurate.
-            </p>
+        <div className="flex flex-col gap-4 border-b border-zinc-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            {isListCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsListCollapsed(false)}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-400 shadow-sm transition hover:bg-amber-500/20"
+              >
+                <ChevronRight className="size-4" />
+                Expand List ({posts.length})
+              </button>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-3xl font-light text-zinc-100">
+                  {draft.id ? "Edit News Post" : "Add News Post"}
+                </h2>
+                {draft.id && (
+                  <span className="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-0.5 text-xs text-zinc-300">
+                    ID: {draft.id.slice(0, 8)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-zinc-400">
+                Keep titles, excerpts, categories, images, and publishing status accurate.
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setIsPreviewOpen((current) => !current)}
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
+              className="inline-flex w-fit items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-xs font-bold text-zinc-200 transition hover:border-amber-500/40 hover:text-amber-300"
             >
               <Search className="size-4" />
               Preview
@@ -4335,7 +4560,7 @@ function NewsContentSection() {
               type="button"
               onClick={savePost}
               disabled={isSaving}
-              className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 disabled:opacity-60 active:scale-[0.98]"
+              className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:from-amber-400 hover:to-yellow-400 disabled:opacity-60 active:scale-[0.98]"
             >
               <Save className="size-4" />
               {isSaving ? "Saving..." : "Save"}
@@ -4344,14 +4569,14 @@ function NewsContentSection() {
         </div>
 
         {isPreviewOpen && (
-          <div className="mt-6 overflow-hidden rounded-lg border border-[#272730] bg-[#181820]">
+          <div className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-[#0e0e11] shadow-2xl">
             <img
               src={draft.image}
               alt=""
               className={`aspect-[16/8] w-full object-cover ${draft.position}`}
             />
             <div className="p-5">
-              <div className="text-xs uppercase tracking-[0.2em] text-amber-400">
+              <div className="text-xs uppercase tracking-[0.2em] text-amber-400 font-semibold">
                 {draft.category}
               </div>
               <h3 className="mt-3 font-display text-3xl font-light text-zinc-100">
@@ -4407,20 +4632,27 @@ function NewsContentSection() {
         </HomeSubsection>
 
         <HomeSubsection title="Images & Media">
-          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
-            <div className="overflow-hidden rounded-lg border border-[#272730] bg-[#181820] p-3">
-              <img
-                src={draft.image}
-                alt=""
-                className={`aspect-[4/3] w-full rounded-md object-cover ${draft.position}`}
-              />
+          <div className="grid gap-6 md:grid-cols-[220px_1fr] xl:grid-cols-[260px_1fr]">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-zinc-400">Live Preview</span>
+              <div className="overflow-hidden rounded-xl border border-zinc-800 bg-[#0e0e11] p-3 shadow-lg">
+                <img
+                  src={draft.image}
+                  alt=""
+                  className={`aspect-[4/3] w-full rounded-lg object-cover shadow-md ${draft.position}`}
+                />
+              </div>
             </div>
             <div className="grid gap-5">
-              <HomeMediaSelect
+              <HomeEditorMediaSelect
                 label="Image"
                 value={draft.image}
                 options={mediaOptions}
                 onChange={(value) => updateDraft((next) => void (next.image = value))}
+                onUploaded={(src) => {
+                  setMediaOptions((current) => (current.includes(src) ? current : [src, ...current]));
+                  updateDraft((next) => void (next.image = src));
+                }}
               />
               <HomeInput
                 label="Image Position"
@@ -4464,14 +4696,14 @@ function NewsContentSection() {
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "published"))}
-              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300"
+              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 transition hover:bg-amber-500/20"
             >
               Publish
             </button>
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "draft"))}
-              className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-bold text-zinc-300 transition hover:bg-zinc-700"
             >
               Unpublish
             </button>
@@ -5159,6 +5391,7 @@ function EventsContentSection() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isListCollapsed, setIsListCollapsed] = useState(false);
 
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -5350,7 +5583,7 @@ function EventsContentSection() {
     return (
       <AdminCard>
         <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
-        <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
+        <div className="mt-6 grid gap-5 lg:grid-cols-[350px_1fr]">
           <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
           <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
@@ -5359,128 +5592,232 @@ function EventsContentSection() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.42fr_1fr]">
+    <div
+      className={`grid gap-6 transition-all duration-300 ${
+        isListCollapsed
+          ? "xl:grid-cols-[68px_1fr]"
+          : "xl:grid-cols-[350px_1fr] 2xl:grid-cols-[380px_1fr]"
+      }`}
+    >
       <AdminCard>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
-          <div>
-            <h2 className="font-display text-3xl font-light text-zinc-100">Events</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Manage upcoming and completed event coverage shown on the public Events page.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={startNewEvent}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300"
-          >
-            <Plus className="size-4" />
-            Add Event
-          </button>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <HomeInput label="Search" value={search} onChange={setSearch} />
-          <HomeSelect
-            label="Filter"
-            value={filter}
-            options={[
-              "All",
-              "published",
-              "draft",
-              "archived",
-              "upcoming",
-              "completed",
-              "cancelled",
-              ...eventTypeOptions,
-            ]}
-            onChange={setFilter}
-          />
-        </div>
-
-        {message && (
-          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
-            {message}
-          </div>
-        )}
-        {error && (
-          <div className="mt-5 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-6 space-y-3">
-          {filteredEvents.length === 0 ? (
-            <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
-              No events match this search.
-            </div>
-          ) : (
-            filteredEvents.map((event) => (
-              <article
-                key={event.id}
-                draggable
-                onDragStart={() => setDraggedId(event.id)}
-                onDragOver={(dragEvent) => dragEvent.preventDefault()}
-                onDrop={() => void reorderEvents(draggedId, event.id)}
-                className={`rounded-lg border p-3 transition-all ${
-                  draft.id === event.id
-                    ? "border-amber-500/60 bg-amber-500/10"
-                    : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
-                }`}
-              >
+        {isListCollapsed ? (
+          <div className="flex flex-col items-center gap-4 py-2">
+            <button
+              type="button"
+              onClick={() => setIsListCollapsed(false)}
+              title="Expand Events List"
+              aria-label="Expand Events List"
+              className="flex size-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400 shadow-lg transition-all duration-200 hover:border-amber-500/60 hover:bg-amber-500/20 hover:scale-105"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={startNewEvent}
+              title="Add Event"
+              aria-label="Add Event"
+              className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-black shadow-md transition-all hover:scale-105"
+            >
+              <Plus className="size-5" />
+            </button>
+            <div className="my-2 h-px w-full bg-zinc-800" />
+            <div className="flex flex-col gap-2">
+              {events.map((event) => (
                 <button
+                  key={event.id}
                   type="button"
                   onClick={() => editEvent(event)}
-                  className="block w-full text-left"
+                  title={event.name}
+                  className={`group relative size-10 overflow-hidden rounded-lg border transition-all ${
+                    draft.id === event.id
+                      ? "border-amber-500 ring-2 ring-amber-500/40"
+                      : "border-zinc-800 opacity-60 hover:border-zinc-600 hover:opacity-100"
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <img src={event.image} alt="" className="h-14 w-16 rounded-md object-cover" />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-zinc-100">{event.name}</div>
-                      <div className="mt-1 text-xs text-zinc-400">
-                        {event.dateLabel} / {event.eventStatus} / {event.status}
+                  <img src={event.image} alt={event.name} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-2xl font-light text-zinc-100">Events</h2>
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-400">
+                    {events.length}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Manage upcoming and completed event coverage shown on the public Events page.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsListCollapsed(true)}
+                title="Collapse Panel"
+                aria-label="Collapse Events List"
+                className="flex size-8 items-center justify-center rounded-lg border border-zinc-800 bg-[#16161c] text-zinc-400 transition-all hover:border-amber-500/40 hover:text-amber-400"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={startNewEvent}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 px-4 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:from-amber-400 hover:to-yellow-400 active:scale-[0.98]"
+              >
+                <Plus className="size-4" />
+                Add Event
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <HomeInput label="Search" value={search} onChange={setSearch} />
+              <HomeSelect
+                label="Filter"
+                value={filter}
+                options={[
+                  "All",
+                  "published",
+                  "draft",
+                  "archived",
+                  "upcoming",
+                  "completed",
+                  "cancelled",
+                  ...eventTypeOptions,
+                ]}
+                onChange={setFilter}
+              />
+            </div>
+
+            {message && (
+              <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs font-semibold text-amber-300">
+                {message}
+              </div>
+            )}
+            {error && (
+              <div className="mt-4 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2.5 text-xs font-semibold text-red-300">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-4 space-y-3 max-h-[620px] overflow-y-auto pr-1">
+              {filteredEvents.length === 0 ? (
+                <div className="rounded-xl border border-[#272730] bg-[#181820] p-5 text-xs text-zinc-400 text-center">
+                  No events match this search.
+                </div>
+              ) : (
+                filteredEvents.map((event) => (
+                  <article
+                    key={event.id}
+                    draggable
+                    onDragStart={() => setDraggedId(event.id)}
+                    onDragOver={(dragEvent) => dragEvent.preventDefault()}
+                    onDrop={() => void reorderEvents(draggedId, event.id)}
+                    onClick={() => editEvent(event)}
+                    className={`group relative flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-3.5 sm:p-4 transition-all duration-200 hover:-translate-y-0.5 ${
+                      draft.id === event.id
+                        ? "border-amber-500/80 bg-amber-500/10 shadow-[0_4px_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30"
+                        : "border-zinc-800/80 bg-[#131318] hover:border-amber-500/40 hover:bg-[#181820] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-900 shadow-inner">
+                        <img
+                          src={event.image}
+                          alt=""
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-zinc-100 transition-colors group-hover:text-amber-300">
+                          {event.name}
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-zinc-400 font-medium">
+                            {event.dateLabel}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
+                              event.status === "published"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : event.status === "draft"
+                                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                                : "border-zinc-700 bg-zinc-800 text-zinc-400"
+                            }`}
+                          >
+                            <span
+                              className={`size-1.5 rounded-full ${
+                                event.status === "published"
+                                  ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"
+                                  : event.status === "draft"
+                                  ? "bg-amber-400"
+                                  : "bg-zinc-400"
+                              }`}
+                            />
+                            {event.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => editEvent(event)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
-                  >
-                    <Edit3 className="size-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteEvent(event)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
-                  >
-                    <Trash2 className="size-3.5" />
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteEvent(event);
+                      }}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-1.5 text-xs font-bold text-red-400 transition-all duration-200 hover:border-red-500/60 hover:bg-red-900/50"
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </AdminCard>
 
       <AdminCard>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="font-display text-3xl font-light text-zinc-100">
-              {draft.id ? "Edit Event" : "Add Event"}
-            </h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Keep event dates, locations, descriptions, images, and publishing status accurate.
-            </p>
+        <div className="flex flex-col gap-4 border-b border-zinc-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            {isListCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsListCollapsed(false)}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-400 shadow-sm transition hover:bg-amber-500/20"
+              >
+                <ChevronRight className="size-4" />
+                Expand List ({events.length})
+              </button>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-3xl font-light text-zinc-100">
+                  {draft.id ? "Edit Event" : "Add Event"}
+                </h2>
+                {draft.id && (
+                  <span className="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-0.5 text-xs text-zinc-300">
+                    ID: {draft.id.slice(0, 8)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-zinc-400">
+                Keep event dates, locations, descriptions, images, and publishing status accurate.
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setIsPreviewOpen((current) => !current)}
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
+              className="inline-flex w-fit items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-xs font-bold text-zinc-200 transition hover:border-amber-500/40 hover:text-amber-300"
             >
               <Search className="size-4" />
               Preview
@@ -5489,7 +5826,7 @@ function EventsContentSection() {
               type="button"
               onClick={saveEvent}
               disabled={isSaving}
-              className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 disabled:opacity-60 active:scale-[0.98]"
+              className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:from-amber-400 hover:to-yellow-400 disabled:opacity-60 active:scale-[0.98]"
             >
               <Save className="size-4" />
               {isSaving ? "Saving..." : "Save"}
@@ -5498,14 +5835,14 @@ function EventsContentSection() {
         </div>
 
         {isPreviewOpen && (
-          <div className="mt-6 overflow-hidden rounded-lg border border-[#272730] bg-[#181820]">
+          <div className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-[#0e0e11] shadow-2xl">
             <img
               src={draft.image}
               alt=""
               className={`aspect-[16/8] w-full object-cover ${draft.position}`}
             />
             <div className="p-5">
-              <div className="text-xs uppercase tracking-[0.2em] text-amber-400">
+              <div className="text-xs uppercase tracking-[0.2em] text-amber-400 font-semibold">
                 Event coverage
               </div>
               <h3 className="mt-3 font-display text-3xl font-light text-zinc-100">
@@ -5570,20 +5907,27 @@ function EventsContentSection() {
         </HomeSubsection>
 
         <HomeSubsection title="Images & Media">
-          <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
-            <div className="overflow-hidden rounded-lg border border-[#272730] bg-[#181820] p-3">
-              <img
-                src={draft.image}
-                alt=""
-                className={`aspect-[4/3] w-full rounded-md object-cover ${draft.position}`}
-              />
+          <div className="grid gap-6 md:grid-cols-[220px_1fr] xl:grid-cols-[260px_1fr]">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-zinc-400">Live Preview</span>
+              <div className="overflow-hidden rounded-xl border border-zinc-800 bg-[#0e0e11] p-3 shadow-lg">
+                <img
+                  src={draft.image}
+                  alt=""
+                  className={`aspect-[4/3] w-full rounded-lg object-cover shadow-md ${draft.position}`}
+                />
+              </div>
             </div>
             <div className="grid gap-5">
-              <HomeMediaSelect
+              <HomeEditorMediaSelect
                 label="Event Image"
                 value={draft.image}
                 options={mediaOptions}
                 onChange={(value) => updateDraft((next) => void (next.image = value))}
+                onUploaded={(src) => {
+                  setMediaOptions((current) => (current.includes(src) ? current : [src, ...current]));
+                  updateDraft((next) => void (next.image = src));
+                }}
               />
               <HomeInput
                 label="Image Position"
@@ -5595,7 +5939,7 @@ function EventsContentSection() {
         </HomeSubsection>
 
         <HomeSubsection title="Registration Details">
-          <div className="rounded-lg border border-[#272730] bg-[#181820] p-4 text-sm leading-6 text-zinc-400">
+          <div className="rounded-xl border border-zinc-800 bg-[#141419] p-4 text-sm leading-6 text-zinc-400">
             The public Events page currently uses the fixed View Gallery action and does not store a
             registration link.
           </div>
@@ -5629,14 +5973,14 @@ function EventsContentSection() {
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "published"))}
-              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300"
+              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 transition hover:bg-amber-500/20"
             >
               Publish
             </button>
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "draft"))}
-              className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-bold text-zinc-300 transition hover:bg-zinc-700"
             >
               Unpublish
             </button>
