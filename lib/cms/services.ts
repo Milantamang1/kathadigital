@@ -66,11 +66,35 @@ export function serviceInputToDb(input: ServiceInput) {
   };
 }
 
+function fallbackPublishedServices(): ServiceValue[] {
+  return fallbackServices.map((service, index) => ({
+    id: `fallback-${index}`,
+    slug: service.slug,
+    title: service.title,
+    short: service.short,
+    image: service.image,
+    position: service.position,
+    status: "published",
+    featured: false,
+    displayOrder: index,
+    publishedAt: null,
+    updatedAt: "",
+  }));
+}
+
 export async function getPublishedServices() {
-  const records = await prisma.service.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: Service[];
+
+  try {
+    records = await prisma.service.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error("Unable to load services from the database. Using fallback services.", error);
+
+    return fallbackPublishedServices();
+  }
 
   if (records.length === 0) {
     const totalRecords = await prisma.service.count();
@@ -78,19 +102,7 @@ export async function getPublishedServices() {
       return [];
     }
 
-    return fallbackServices.map((service, index) => ({
-      id: `fallback-${index}`,
-      slug: service.slug,
-      title: service.title,
-      short: service.short,
-      image: service.image,
-      position: service.position,
-      status: "published" as const,
-      featured: false,
-      displayOrder: index,
-      publishedAt: null,
-      updatedAt: "",
-    }));
+    return fallbackPublishedServices();
   }
 
   return records.map(serviceToValue);

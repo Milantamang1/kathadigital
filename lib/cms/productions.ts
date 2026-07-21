@@ -218,10 +218,21 @@ function fallbackUpcoming(): ProductionValue[] {
 }
 
 export async function getPublishedProductions() {
-  const records = await prisma.production.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: Production[];
+
+  try {
+    records = await prisma.production.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error(
+      "Unable to load published productions from the database. Using fallback productions.",
+      error,
+    );
+
+    return fallbackPublishedProductions();
+  }
 
   if (records.length === 0) {
     const totalRecords = await prisma.production.count();
@@ -236,10 +247,21 @@ export async function getPublishedProductions() {
 }
 
 export async function getUpcomingProductions() {
-  const records = await prisma.production.findMany({
-    where: { status: { not: "PUBLISHED" } },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: Production[];
+
+  try {
+    records = await prisma.production.findMany({
+      where: { status: { not: "PUBLISHED" } },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error(
+      "Unable to load upcoming productions from the database. Using fallback productions.",
+      error,
+    );
+
+    return fallbackUpcoming();
+  }
 
   if (records.length === 0) {
     const totalRecords = await prisma.production.count();

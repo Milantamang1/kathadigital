@@ -95,11 +95,39 @@ export function newsPostInputToDb(input: NewsPostInput) {
   };
 }
 
+function fallbackPublishedNewsPosts(): NewsPostValue[] {
+  return fallbackPosts.map((post, index) => ({
+    id: `fallback-${index}`,
+    slug: createSlug(post.title),
+    title: post.title,
+    category: post.category,
+    date: post.date,
+    author: post.author,
+    excerpt: post.excerpt,
+    content: post.excerpt,
+    image: post.image,
+    position: post.position,
+    status: "published",
+    featured: index === 0,
+    displayOrder: index,
+    publishedAt: null,
+    updatedAt: "",
+  }));
+}
+
 export async function getPublishedNewsPosts() {
-  const records = await prisma.newsPost.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: NewsPost[];
+
+  try {
+    records = await prisma.newsPost.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error("Unable to load news from the database. Using fallback news.", error);
+
+    return fallbackPublishedNewsPosts();
+  }
 
   if (records.length === 0) {
     const totalRecords = await prisma.newsPost.count();
@@ -107,23 +135,7 @@ export async function getPublishedNewsPosts() {
       return [];
     }
 
-    return fallbackPosts.map((post, index) => ({
-      id: `fallback-${index}`,
-      slug: createSlug(post.title),
-      title: post.title,
-      category: post.category,
-      date: post.date,
-      author: post.author,
-      excerpt: post.excerpt,
-      content: post.excerpt,
-      image: post.image,
-      position: post.position,
-      status: "published" as const,
-      featured: index === 0,
-      displayOrder: index,
-      publishedAt: null,
-      updatedAt: "",
-    }));
+    return fallbackPublishedNewsPosts();
   }
 
   return records.map(newsPostToValue);

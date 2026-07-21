@@ -113,11 +113,51 @@ export function portfolioInputToDb(input: PortfolioProjectInput) {
   };
 }
 
+function fallbackPublishedPortfolioProjects(): PortfolioProjectValue[] {
+  return fallbackPortfolio.map((item, index) => ({
+    id: `fallback-${index}`,
+    slug: createSlug(item.title),
+    title: item.title,
+    category: item.category,
+    location: item.location,
+    date: item.date,
+    desc: item.desc,
+    image: item.image,
+    position: item.position,
+    videoUrl: "",
+    status: "published",
+    featured: index === 1,
+    displayOrder: index,
+    publishedAt: null,
+    updatedAt: "",
+  }));
+}
+
+function fallbackPortfolioVideos(): PortfolioVideoValue[] {
+  return fallbackVideos.map((video) => ({
+    id: video.id,
+    title: video.title,
+    type: video.type,
+    description: video.description,
+  }));
+}
+
 export async function getPublishedPortfolioProjects() {
-  const records = await prisma.portfolioProject.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: PortfolioProject[];
+
+  try {
+    records = await prisma.portfolioProject.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error(
+      "Unable to load portfolio projects from the database. Using fallback portfolio.",
+      error,
+    );
+
+    return fallbackPublishedPortfolioProjects();
+  }
 
   if (records.length === 0) {
     const totalRecords = await prisma.portfolioProject.count();
@@ -125,41 +165,31 @@ export async function getPublishedPortfolioProjects() {
       return [];
     }
 
-    return fallbackPortfolio.map((item, index) => ({
-      id: `fallback-${index}`,
-      slug: createSlug(item.title),
-      title: item.title,
-      category: item.category,
-      location: item.location,
-      date: item.date,
-      desc: item.desc,
-      image: item.image,
-      position: item.position,
-      videoUrl: "",
-      status: "published" as const,
-      featured: index === 1,
-      displayOrder: index,
-      publishedAt: null,
-      updatedAt: "",
-    }));
+    return fallbackPublishedPortfolioProjects();
   }
 
   return records.map(portfolioProjectToValue);
 }
 
 export async function getPortfolioVideos() {
-  const records = await prisma.videoItem.findMany({
-    where: { section: "portfolio", status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: VideoItem[];
+
+  try {
+    records = await prisma.videoItem.findMany({
+      where: { section: "portfolio", status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error(
+      "Unable to load portfolio videos from the database. Using fallback videos.",
+      error,
+    );
+
+    return fallbackPortfolioVideos();
+  }
 
   if (records.length === 0) {
-    return fallbackVideos.map((video) => ({
-      id: video.id,
-      title: video.title,
-      type: video.type,
-      description: video.description,
-    }));
+    return fallbackPortfolioVideos();
   }
 
   return records.map(portfolioVideoToValue);

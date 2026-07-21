@@ -146,10 +146,25 @@ function fallbackEvent(
 }
 
 export async function getPublishedEvents() {
-  const records = await prisma.event.findMany({
-    where: { contentStatus: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: Event[];
+
+  try {
+    records = await prisma.event.findMany({
+      where: { contentStatus: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error("Unable to load events from the database. Using fallback events.", error);
+
+    return {
+      upcoming: fallbackEvents.upcoming.map((event, index) =>
+        fallbackEvent("upcoming", event, index),
+      ),
+      completed: fallbackEvents.completed.map((event, index) =>
+        fallbackEvent("completed", event, index),
+      ),
+    };
+  }
 
   if (records.length === 0) {
     const totalRecords = await prisma.event.count();
@@ -176,10 +191,21 @@ export async function getPublishedEvents() {
 }
 
 export async function getEventVideos() {
-  const records = await prisma.videoItem.findMany({
-    where: { section: "events", status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  let records: VideoItem[];
+
+  try {
+    records = await prisma.videoItem.findMany({
+      where: { section: "events", status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    console.error("Unable to load event videos from the database. Using fallback videos.", error);
+
+    return ["QVfkQe29EKY", "u-yd2xWAQZk", "6OFqS_qlJB0"].map((id) => ({
+      id,
+      title: "Event film",
+    }));
+  }
 
   if (records.length === 0) {
     return ["QVfkQe29EKY", "u-yd2xWAQZk", "6OFqS_qlJB0"].map((id) => ({

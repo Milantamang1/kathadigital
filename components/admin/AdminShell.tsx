@@ -39,6 +39,7 @@ import {
   Settings,
   Share2,
   Sparkles,
+  Target,
   Trash2,
   UploadCloud,
   Users,
@@ -1760,10 +1761,12 @@ function HomeSubsection({ children, title }: { children: React.ReactNode; title:
 }
 
 function HomeInput({
+  helper,
   label,
   onChange,
   value,
 }: {
+  helper?: string;
   label: string;
   value: string | number;
   onChange: (value: string) => void;
@@ -1778,15 +1781,18 @@ function HomeInput({
         onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
       />
+      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
     </label>
   );
 }
 
 function HomeTextarea({
+  helper,
   label,
   onChange,
   value,
 }: {
+  helper?: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -1802,16 +1808,19 @@ function HomeTextarea({
         onChange={(event) => onChange(event.target.value)}
         className="w-full resize-none rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
       />
+      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
     </label>
   );
 }
 
 function HomeSelect({
+  helper,
   label,
   onChange,
   options,
   value,
 }: {
+  helper?: string;
   label: string;
   value: string;
   options: string[];
@@ -1833,16 +1842,19 @@ function HomeSelect({
           </option>
         ))}
       </select>
+      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
     </label>
   );
 }
 
 function HomeMediaSelect({
+  helper,
   label,
   onChange,
   options,
   value,
 }: {
+  helper?: string;
   label: string;
   value: string;
   options: string[];
@@ -1854,6 +1866,7 @@ function HomeMediaSelect({
       value={value}
       options={options.includes(value) ? options : [value, ...options]}
       onChange={onChange}
+      helper={helper}
     />
   );
 }
@@ -1965,6 +1978,9 @@ function AboutContentSection() {
   const [content, setContent] = useState<AboutContentValue | null>(null);
   const [status, setStatus] = useState<"draft" | "published" | "archived">("published");
   const [mediaOptions, setMediaOptions] = useState<string[]>([]);
+  const [uploadStates, setUploadStates] = useState<
+    Record<string, { progress: number; message: string; error: string; isUploading: boolean }>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -2025,6 +2041,110 @@ function AboutContentSection() {
       mutator(next);
       return next;
     });
+  }
+
+  function setUploadState(
+    fieldKey: string,
+    state: Partial<{ progress: number; message: string; error: string; isUploading: boolean }>,
+  ) {
+    setUploadStates((current) => ({
+      ...current,
+      [fieldKey]: {
+        progress: current[fieldKey]?.progress ?? 0,
+        message: current[fieldKey]?.message ?? "",
+        error: current[fieldKey]?.error ?? "",
+        isUploading: current[fieldKey]?.isUploading ?? false,
+        ...state,
+      },
+    }));
+  }
+
+  function validateAboutImageUpload(file: File) {
+    if (!cmsImageUploadTypes.includes(file.type as (typeof cmsImageUploadTypes)[number])) {
+      return "Please upload an AVIF, GIF, JPG, PNG, or WebP image.";
+    }
+
+    if (file.size > cmsImageUploadMaxSize) {
+      return "Image uploads must be 2MB or smaller.";
+    }
+
+    return "";
+  }
+
+  function uploadAboutImage(fieldKey: string, file: File, onUploaded: (src: string) => void) {
+    const validationError = validateAboutImageUpload(file);
+    if (validationError) {
+      setUploadState(fieldKey, {
+        error: validationError,
+        isUploading: false,
+        message: "",
+        progress: 0,
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("file", file);
+    const request = new XMLHttpRequest();
+
+    setMessage("");
+    setError("");
+    setUploadState(fieldKey, {
+      error: "",
+      isUploading: true,
+      message: "Uploading image...",
+      progress: 0,
+    });
+
+    request.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      setUploadState(fieldKey, { progress: Math.round((event.loaded / event.total) * 100) });
+    };
+
+    request.onload = () => {
+      try {
+        const payload = JSON.parse(request.responseText || "{}") as {
+          ok?: boolean;
+          data?: { src?: string };
+          error?: { message?: string };
+        };
+
+        if (request.status < 200 || request.status >= 300 || !payload.ok || !payload.data?.src) {
+          throw new Error(payload.error?.message ?? "Unable to upload image.");
+        }
+
+        const uploadedSrc = payload.data.src;
+        onUploaded(uploadedSrc);
+        setMediaOptions((current) =>
+          current.includes(uploadedSrc) ? current : [uploadedSrc, ...current],
+        );
+        setUploadState(fieldKey, {
+          error: "",
+          isUploading: false,
+          message: "Image uploaded. Save About Content to publish this change.",
+          progress: 100,
+        });
+      } catch (uploadError) {
+        setUploadState(fieldKey, {
+          error: uploadError instanceof Error ? uploadError.message : "Unable to upload image.",
+          isUploading: false,
+          message: "",
+          progress: 0,
+        });
+      }
+    };
+
+    request.onerror = () => {
+      setUploadState(fieldKey, {
+        error: "Upload failed. Please check your connection and try again.",
+        isUploading: false,
+        message: "",
+        progress: 0,
+      });
+    };
+
+    request.open("POST", "/api/admin/settings/media");
+    request.send(formData);
   }
 
   async function handleSave() {
@@ -2090,7 +2210,7 @@ function AboutContentSection() {
         <div>
           <h2 className="font-display text-3xl font-light">About Content</h2>
           <p className="mt-2 text-sm text-[#746c61]">
-            Edit the singleton about page content used by the public About page.
+            Edit the public About page content section by section.
           </p>
         </div>
         <button
@@ -2116,343 +2236,592 @@ function AboutContentSection() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-5 md:grid-cols-2">
-        <HomeSelect
-          label="Status"
-          value={status}
-          options={["draft", "published", "archived"]}
-          onChange={(value) => setStatus(value as "draft" | "published" | "archived")}
-        />
-        <HomeInput
-          label="Metadata Title"
-          value={content.metadata.title}
-          onChange={(value) => updateContent((draft) => void (draft.metadata.title = value))}
-        />
-        <HomeTextarea
-          label="Metadata Description"
-          value={content.metadata.description}
-          onChange={(value) => updateContent((draft) => void (draft.metadata.description = value))}
-        />
-        <HomeTextarea
-          label="Open Graph Description"
-          value={content.metadata.openGraph.description}
-          onChange={(value) =>
-            updateContent((draft) => void (draft.metadata.openGraph.description = value))
-          }
-        />
-        <HomeInput
-          label="Open Graph Title"
-          value={content.metadata.openGraph.title}
-          onChange={(value) =>
-            updateContent((draft) => void (draft.metadata.openGraph.title = value))
-          }
-        />
-      </div>
-
-      <HomeSubsection title="Hero">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="Hero Eyebrow"
-            value={content.hero.eyebrow}
-            onChange={(value) => updateContent((draft) => void (draft.hero.eyebrow = value))}
-          />
-          <HomeInput
-            label="Hero Title"
-            value={content.hero.title}
-            onChange={(value) => updateContent((draft) => void (draft.hero.title = value))}
-          />
-          <HomeInput
-            label="Hero Emphasis"
-            value={content.hero.emphasis}
-            onChange={(value) => updateContent((draft) => void (draft.hero.emphasis = value))}
-          />
-          <HomeTextarea
-            label="Hero Subtitle"
-            value={content.hero.subtitle}
-            onChange={(value) => updateContent((draft) => void (draft.hero.subtitle = value))}
-          />
-        </div>
-      </HomeSubsection>
-
-      <HomeSubsection title="Studio">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="Studio Eyebrow"
-            value={content.studio.eyebrow}
-            onChange={(value) => updateContent((draft) => void (draft.studio.eyebrow = value))}
-          />
-          <HomeMediaSelect
-            label="Studio Image"
-            value={content.studio.image}
-            options={mediaOptions}
-            onChange={(value) => updateContent((draft) => void (draft.studio.image = value))}
-          />
-          <HomeTextarea
-            label="Studio Title"
-            value={content.studio.title}
-            onChange={(value) => updateContent((draft) => void (draft.studio.title = value))}
-          />
-          <HomeInput
-            label="Studio Image Alt"
-            value={content.studio.imageAlt}
-            onChange={(value) => updateContent((draft) => void (draft.studio.imageAlt = value))}
-          />
-          <HomeInput
-            label="Studio Image Badge"
-            value={content.studio.imageBadge}
-            onChange={(value) => updateContent((draft) => void (draft.studio.imageBadge = value))}
-          />
-          {content.studio.paragraphs.map((paragraph, index) => (
-            <HomeTextarea
-              key={index}
-              label={`Studio Paragraph ${index + 1}`}
-              value={paragraph}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.studio.paragraphs[index] = value))
-              }
+      <div className="mt-6 space-y-4">
+        <AboutEditorSection
+          defaultOpen
+          icon={Sparkles}
+          title="Hero"
+          description="The opening headline at the top of the About page."
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              helper="Small text above the headline."
+              label="Small Heading"
+              value={content.hero.eyebrow}
+              onChange={(value) => updateContent((draft) => void (draft.hero.eyebrow = value))}
             />
-          ))}
-          {content.studio.steps.map(([num, label], index) => (
-            <div key={index} className="grid gap-4 md:col-span-2 md:grid-cols-2">
-              <HomeInput
-                label={`Step ${index + 1} Number`}
-                value={num}
+            <HomeInput
+              helper="Main headline text before the highlighted words."
+              label="Headline"
+              value={content.hero.title}
+              onChange={(value) => updateContent((draft) => void (draft.hero.title = value))}
+            />
+            <HomeInput
+              helper="Highlighted words in the headline."
+              label="Highlighted Text"
+              value={content.hero.emphasis}
+              onChange={(value) => updateContent((draft) => void (draft.hero.emphasis = value))}
+            />
+            <HomeTextarea
+              helper="Short introduction below the headline."
+              label="Intro Text"
+              value={content.hero.subtitle}
+              onChange={(value) => updateContent((draft) => void (draft.hero.subtitle = value))}
+            />
+          </div>
+        </AboutEditorSection>
+
+        <AboutEditorSection
+          icon={ImageIcon}
+          title="Studio Story"
+          description="The Who We Are story block, image, badge, and process steps."
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              helper="Small text above the studio story."
+              label="Small Heading"
+              value={content.studio.eyebrow}
+              onChange={(value) => updateContent((draft) => void (draft.studio.eyebrow = value))}
+            />
+            <AboutMediaField
+              helper="Choose an existing media item or upload a new image for this field."
+              label="Story Image"
+              value={content.studio.image}
+              options={mediaOptions}
+              onChange={(value) => updateContent((draft) => void (draft.studio.image = value))}
+              onUpload={(file) =>
+                uploadAboutImage("studio.image", file, (src) =>
+                  updateContent((draft) => void (draft.studio.image = src)),
+                )
+              }
+              uploadState={uploadStates["studio.image"]}
+            />
+            <HomeTextarea
+              helper="Large statement shown beside the image."
+              label="Main Statement"
+              value={content.studio.title}
+              onChange={(value) => updateContent((draft) => void (draft.studio.title = value))}
+            />
+            <HomeInput
+              helper="Short badge text shown over the image."
+              label="Image Badge"
+              value={content.studio.imageBadge}
+              onChange={(value) => updateContent((draft) => void (draft.studio.imageBadge = value))}
+            />
+            {content.studio.paragraphs.map((paragraph, index) => (
+              <HomeTextarea
+                key={index}
+                helper="Keep this easy to scan."
+                label={`Story Paragraph ${index + 1}`}
+                value={paragraph}
                 onChange={(value) =>
-                  updateContent((draft) => void (draft.studio.steps[index][0] = value))
+                  updateContent((draft) => void (draft.studio.paragraphs[index] = value))
                 }
               />
+            ))}
+            {content.studio.steps.map(([num, label], index) => (
+              <div key={index} className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                <HomeInput
+                  helper="Usually 01, 02, 03."
+                  label={`Step ${index + 1} Number`}
+                  value={num}
+                  onChange={(value) =>
+                    updateContent((draft) => void (draft.studio.steps[index][0] = value))
+                  }
+                />
+                <HomeInput
+                  helper="Short process label."
+                  label={`Step ${index + 1} Label`}
+                  value={label}
+                  onChange={(value) =>
+                    updateContent((draft) => void (draft.studio.steps[index][1] = value))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </AboutEditorSection>
+
+        <AboutEditorSection
+          icon={Target}
+          title="Principles"
+          description="The three vision, mission, and craft cards."
+        >
+          {content.principles.map((principle, index) => (
+            <div
+              key={principle.eyebrow}
+              className="grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
+            >
               <HomeInput
-                label={`Step ${index + 1} Label`}
-                value={label}
+                helper="Small card label."
+                label={`Card ${index + 1} Label`}
+                value={principle.eyebrow}
                 onChange={(value) =>
-                  updateContent((draft) => void (draft.studio.steps[index][1] = value))
+                  updateContent((draft) => void (draft.principles[index].eyebrow = value))
+                }
+              />
+              <HomeTextarea
+                helper="Short card headline."
+                label={`Card ${index + 1} Headline`}
+                value={principle.title}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.principles[index].title = value))
+                }
+              />
+              <HomeTextarea
+                helper="One concise supporting paragraph."
+                label={`Card ${index + 1} Text`}
+                value={principle.text}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.principles[index].text = value))
                 }
               />
             </div>
           ))}
-        </div>
-      </HomeSubsection>
+        </AboutEditorSection>
 
-      <HomeSubsection title="Principles">
-        {content.principles.map((principle, index) => (
-          <div
-            key={principle.eyebrow}
-            className="grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
-          >
-            <HomeSelect
-              label={`Principle ${index + 1} Icon`}
-              value={principle.iconKey}
-              options={["Eye", "Target", "Sparkles"]}
-              onChange={(value) =>
-                updateContent(
-                  (draft) =>
-                    void (draft.principles[index].iconKey = value as "Eye" | "Target" | "Sparkles"),
+        <AboutEditorSection
+          icon={Users}
+          title="Founder Note"
+          description="The founder portrait, quote, name, role, and supporting points."
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              helper="Small text above the founder heading."
+              label="Small Heading"
+              value={content.founder.eyebrow}
+              onChange={(value) => updateContent((draft) => void (draft.founder.eyebrow = value))}
+            />
+            <AboutMediaField
+              helper="Choose an existing media item or upload a new portrait."
+              label="Founder Image"
+              value={content.founder.image}
+              options={mediaOptions}
+              onChange={(value) => updateContent((draft) => void (draft.founder.image = value))}
+              onUpload={(file) =>
+                uploadAboutImage("founder.image", file, (src) =>
+                  updateContent((draft) => void (draft.founder.image = src)),
                 )
               }
+              uploadState={uploadStates["founder.image"]}
             />
             <HomeInput
-              label={`Principle ${index + 1} Eyebrow`}
-              value={principle.eyebrow}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.principles[index].eyebrow = value))
-              }
+              helper="Headline text before the highlighted name."
+              label="Headline"
+              value={content.founder.title}
+              onChange={(value) => updateContent((draft) => void (draft.founder.title = value))}
+            />
+            <HomeInput
+              helper="Highlighted name or phrase."
+              label="Highlighted Text"
+              value={content.founder.emphasis}
+              onChange={(value) => updateContent((draft) => void (draft.founder.emphasis = value))}
+            />
+            <HomeInput
+              helper="Text after the highlighted phrase."
+              label="Headline Ending"
+              value={content.founder.suffix}
+              onChange={(value) => updateContent((draft) => void (draft.founder.suffix = value))}
             />
             <HomeTextarea
-              label={`Principle ${index + 1} Title`}
-              value={principle.title}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.principles[index].title = value))
-              }
-            />
-            <HomeTextarea
-              label={`Principle ${index + 1} Text`}
-              value={principle.text}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.principles[index].text = value))
-              }
-            />
-          </div>
-        ))}
-      </HomeSubsection>
-
-      <HomeSubsection title="Founder">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="Founder Eyebrow"
-            value={content.founder.eyebrow}
-            onChange={(value) => updateContent((draft) => void (draft.founder.eyebrow = value))}
-          />
-          <HomeMediaSelect
-            label="Founder Image"
-            value={content.founder.image}
-            options={mediaOptions}
-            onChange={(value) => updateContent((draft) => void (draft.founder.image = value))}
-          />
-          <HomeInput
-            label="Founder Title"
-            value={content.founder.title}
-            onChange={(value) => updateContent((draft) => void (draft.founder.title = value))}
-          />
-          <HomeInput
-            label="Founder Emphasis"
-            value={content.founder.emphasis}
-            onChange={(value) => updateContent((draft) => void (draft.founder.emphasis = value))}
-          />
-          <HomeInput
-            label="Founder Suffix"
-            value={content.founder.suffix}
-            onChange={(value) => updateContent((draft) => void (draft.founder.suffix = value))}
-          />
-          <HomeInput
-            label="Founder Image Alt"
-            value={content.founder.imageAlt}
-            onChange={(value) => updateContent((draft) => void (draft.founder.imageAlt = value))}
-          />
-          <HomeTextarea
-            label="Founder Quote"
-            value={content.founder.quote}
-            onChange={(value) => updateContent((draft) => void (draft.founder.quote = value))}
-          />
-          <HomeInput
-            label="Founder Name"
-            value={content.founder.name}
-            onChange={(value) => updateContent((draft) => void (draft.founder.name = value))}
-          />
-          <HomeInput
-            label="Founder Role"
-            value={content.founder.role}
-            onChange={(value) => updateContent((draft) => void (draft.founder.role = value))}
-          />
-          {content.founder.bullets.map((bullet, index) => (
-            <HomeInput
-              key={index}
-              label={`Founder Bullet ${index + 1}`}
-              value={bullet}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.founder.bullets[index] = value))
-              }
-            />
-          ))}
-        </div>
-      </HomeSubsection>
-
-      <HomeSubsection title="Team">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="Team Eyebrow"
-            value={content.team.eyebrow}
-            onChange={(value) => updateContent((draft) => void (draft.team.eyebrow = value))}
-          />
-          <HomeInput
-            label="Team Title"
-            value={content.team.title}
-            onChange={(value) => updateContent((draft) => void (draft.team.title = value))}
-          />
-          <HomeInput
-            label="Team Emphasis"
-            value={content.team.emphasis}
-            onChange={(value) => updateContent((draft) => void (draft.team.emphasis = value))}
-          />
-          <HomeInput
-            label="Team Suffix"
-            value={content.team.suffix}
-            onChange={(value) => updateContent((draft) => void (draft.team.suffix = value))}
-          />
-          <HomeTextarea
-            label="Team Subtitle"
-            value={content.team.subtitle}
-            onChange={(value) => updateContent((draft) => void (draft.team.subtitle = value))}
-          />
-        </div>
-        {content.team.members.map((member, index) => (
-          <div
-            key={member.name}
-            className="mt-5 grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
-          >
-            <HomeInput
-              label={`Team Member ${index + 1} Name`}
-              value={member.name}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.team.members[index].name = value))
-              }
+              helper="The featured founder message."
+              label="Quote"
+              value={content.founder.quote}
+              onChange={(value) => updateContent((draft) => void (draft.founder.quote = value))}
             />
             <HomeInput
-              label={`Team Member ${index + 1} Role`}
-              value={member.role}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.team.members[index].role = value))
-              }
-            />
-            <HomeMediaSelect
-              label={`Team Member ${index + 1} Image`}
-              value={member.image}
-              options={mediaOptions}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.team.members[index].image = value))
-              }
+              helper="Name shown below the quote."
+              label="Name"
+              value={content.founder.name}
+              onChange={(value) => updateContent((draft) => void (draft.founder.name = value))}
             />
             <HomeInput
-              label={`Team Member ${index + 1} Position`}
-              value={member.position}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.team.members[index].position = value))
-              }
+              helper="Role shown below the name."
+              label="Role"
+              value={content.founder.role}
+              onChange={(value) => updateContent((draft) => void (draft.founder.role = value))}
             />
-            <HomeTextarea
-              label={`Team Member ${index + 1} Note`}
-              value={member.note}
-              onChange={(value) =>
-                updateContent((draft) => void (draft.team.members[index].note = value))
-              }
-            />
-          </div>
-        ))}
-      </HomeSubsection>
-
-      <HomeSubsection title="CTA & Visibility">
-        <div className="grid gap-5 md:grid-cols-2">
-          <HomeInput
-            label="CTA Eyebrow"
-            value={content.cta.eyebrow}
-            onChange={(value) => updateContent((draft) => void (draft.cta.eyebrow = value))}
-          />
-          <HomeInput
-            label="CTA Button Text"
-            value={content.cta.buttonText}
-            onChange={(value) => updateContent((draft) => void (draft.cta.buttonText = value))}
-          />
-          <HomeTextarea
-            label="CTA Title"
-            value={content.cta.title}
-            onChange={(value) => updateContent((draft) => void (draft.cta.title = value))}
-          />
-          <HomeTextarea
-            label="CTA Subtitle"
-            value={content.cta.subtitle}
-            onChange={(value) => updateContent((draft) => void (draft.cta.subtitle = value))}
-          />
-          <HomeInput
-            label="CTA Link"
-            value={content.cta.to}
-            onChange={(value) => updateContent((draft) => void (draft.cta.to = value))}
-          />
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(Object.keys(content.sections) as Array<keyof AboutContentValue["sections"]>).map(
-            (section) => (
-              <HomeCheckbox
-                key={section}
-                label={section}
-                checked={content.sections[section]}
-                onChange={(checked) =>
-                  updateContent((draft) => void (draft.sections[section] = checked))
+            {content.founder.bullets.map((bullet, index) => (
+              <HomeInput
+                key={index}
+                helper="Short supporting point."
+                label={`Point ${index + 1}`}
+                value={bullet}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.founder.bullets[index] = value))
                 }
               />
-            ),
+            ))}
+          </div>
+        </AboutEditorSection>
+
+        <AboutEditorSection
+          icon={Briefcase}
+          title="Team"
+          description="The team heading and member cards."
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              helper="Small text above the team heading."
+              label="Small Heading"
+              value={content.team.eyebrow}
+              onChange={(value) => updateContent((draft) => void (draft.team.eyebrow = value))}
+            />
+            <HomeInput
+              helper="Headline text before the highlighted word."
+              label="Headline"
+              value={content.team.title}
+              onChange={(value) => updateContent((draft) => void (draft.team.title = value))}
+            />
+            <HomeInput
+              helper="Highlighted word or phrase."
+              label="Highlighted Text"
+              value={content.team.emphasis}
+              onChange={(value) => updateContent((draft) => void (draft.team.emphasis = value))}
+            />
+            <HomeInput
+              helper="Text after the highlighted phrase."
+              label="Headline Ending"
+              value={content.team.suffix}
+              onChange={(value) => updateContent((draft) => void (draft.team.suffix = value))}
+            />
+            <HomeTextarea
+              helper="Short introduction for the team section."
+              label="Intro Text"
+              value={content.team.subtitle}
+              onChange={(value) => updateContent((draft) => void (draft.team.subtitle = value))}
+            />
+          </div>
+          {content.team.members.map((member, index) => (
+            <div
+              key={member.name}
+              className="mt-5 grid gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:grid-cols-2"
+            >
+              <HomeInput
+                helper="Name shown on the card."
+                label={`Member ${index + 1} Name`}
+                value={member.name}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.team.members[index].name = value))
+                }
+              />
+              <HomeInput
+                helper="Role shown on the card."
+                label={`Member ${index + 1} Role`}
+                value={member.role}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.team.members[index].role = value))
+                }
+              />
+              <AboutMediaField
+                helper="Choose an existing media item or upload a new portrait."
+                label={`Member ${index + 1} Image`}
+                value={member.image}
+                options={mediaOptions}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.team.members[index].image = value))
+                }
+                onUpload={(file) =>
+                  uploadAboutImage(`team.members.${index}.image`, file, (src) =>
+                    updateContent((draft) => void (draft.team.members[index].image = src)),
+                  )
+                }
+                uploadState={uploadStates[`team.members.${index}.image`]}
+              />
+              <HomeTextarea
+                helper="Short bio or responsibility note."
+                label={`Member ${index + 1} Note`}
+                value={member.note}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.team.members[index].note = value))
+                }
+              />
+            </div>
+          ))}
+        </AboutEditorSection>
+
+        <AboutEditorSection
+          icon={Mail}
+          title="Call to Action"
+          description="The final booking prompt at the bottom of the About page."
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              helper="Small text above the closing message."
+              label="Small Heading"
+              value={content.cta.eyebrow}
+              onChange={(value) => updateContent((draft) => void (draft.cta.eyebrow = value))}
+            />
+            <HomeInput
+              helper="Text on the button."
+              label="Button Text"
+              value={content.cta.buttonText}
+              onChange={(value) => updateContent((draft) => void (draft.cta.buttonText = value))}
+            />
+            <HomeTextarea
+              helper="Main closing message."
+              label="Headline"
+              value={content.cta.title}
+              onChange={(value) => updateContent((draft) => void (draft.cta.title = value))}
+            />
+            <HomeTextarea
+              helper="Supporting sentence below the headline."
+              label="Supporting Text"
+              value={content.cta.subtitle}
+              onChange={(value) => updateContent((draft) => void (draft.cta.subtitle = value))}
+            />
+          </div>
+        </AboutEditorSection>
+
+        <AboutAdvancedSettings>
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeSelect
+              helper="Controls whether this CMS record is live, draft, or archived."
+              label="Status"
+              value={status}
+              options={["draft", "published", "archived"]}
+              onChange={(value) => setStatus(value as "draft" | "published" | "archived")}
+            />
+            <HomeInput
+              helper="Browser and search result title."
+              label="Metadata Title"
+              value={content.metadata.title}
+              onChange={(value) => updateContent((draft) => void (draft.metadata.title = value))}
+            />
+            <HomeTextarea
+              helper="Search result description."
+              label="Metadata Description"
+              value={content.metadata.description}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.metadata.description = value))
+              }
+            />
+            <HomeInput
+              helper="Social share title."
+              label="Open Graph Title"
+              value={content.metadata.openGraph.title}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.metadata.openGraph.title = value))
+              }
+            />
+            <HomeTextarea
+              helper="Social share description."
+              label="Open Graph Description"
+              value={content.metadata.openGraph.description}
+              onChange={(value) =>
+                updateContent((draft) => void (draft.metadata.openGraph.description = value))
+              }
+            />
+            <HomeInput
+              helper="Used by screen readers and search engines."
+              label="Studio Image Alt Text"
+              value={content.studio.imageAlt}
+              onChange={(value) => updateContent((draft) => void (draft.studio.imageAlt = value))}
+            />
+            <HomeInput
+              helper="Used by screen readers and search engines."
+              label="Founder Image Alt Text"
+              value={content.founder.imageAlt}
+              onChange={(value) => updateContent((draft) => void (draft.founder.imageAlt = value))}
+            />
+            <HomeInput
+              helper="Keep this as an internal path beginning with /."
+              label="CTA Link"
+              value={content.cta.to}
+              onChange={(value) => updateContent((draft) => void (draft.cta.to = value))}
+            />
+            {content.principles.map((principle, index) => (
+              <HomeSelect
+                key={`principle-icon-${index}`}
+                helper="Icon shown on this principle card."
+                label={`Principle ${index + 1} Icon`}
+                value={principle.iconKey}
+                options={["Eye", "Target", "Sparkles"]}
+                onChange={(value) =>
+                  updateContent(
+                    (draft) =>
+                      void (draft.principles[index].iconKey = value as
+                        | "Eye"
+                        | "Target"
+                        | "Sparkles"),
+                  )
+                }
+              />
+            ))}
+            {content.team.members.map((member, index) => (
+              <HomeInput
+                key={`member-position-${index}`}
+                helper="CSS object-position class for portrait framing."
+                label={`Member ${index + 1} Image Position`}
+                value={member.position}
+                onChange={(value) =>
+                  updateContent((draft) => void (draft.team.members[index].position = value))
+                }
+              />
+            ))}
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {(Object.keys(content.sections) as Array<keyof AboutContentValue["sections"]>).map(
+              (section) => (
+                <HomeCheckbox
+                  key={section}
+                  label={`Show ${section} section`}
+                  checked={content.sections[section]}
+                  onChange={(checked) =>
+                    updateContent((draft) => void (draft.sections[section] = checked))
+                  }
+                />
+              ),
+            )}
+          </div>
+        </AboutAdvancedSettings>
+      </div>
+    </AdminCard>
+  );
+}
+
+function AboutEditorSection({
+  children,
+  defaultOpen = false,
+  description,
+  icon: Icon,
+  title,
+}: {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  description: string;
+  icon: typeof Home;
+  title: string;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="group rounded-xl border border-[#e0d6c7] bg-white shadow-[0_16px_42px_-34px_rgba(23,19,13,0.5)]"
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-[#fffaf1] focus-visible:ring-2 focus-visible:ring-[#d7a33b] md:p-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[#f6e8c8] text-[#b98722]">
+          <Icon className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="font-display text-2xl font-light text-[#17130d]">{title}</span>
+          <span className="mt-1 block text-sm leading-6 text-[#746c61]">{description}</span>
+        </span>
+        <ChevronDown className="size-5 text-[#8b7d68] transition group-open:rotate-180" />
+      </summary>
+      <div className="space-y-5 border-t border-[#eee4d5] p-4 md:p-5">{children}</div>
+    </details>
+  );
+}
+
+function AboutAdvancedSettings({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="rounded-xl border border-[#e0d6c7] bg-[#fffbf5] shadow-[0_16px_42px_-34px_rgba(23,19,13,0.5)]">
+      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-[#fffaf1] focus-visible:ring-2 focus-visible:ring-[#d7a33b] md:p-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[#f4eee4] text-[#8b7d68]">
+          <Settings className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="font-display text-2xl font-light text-[#17130d]">Advanced Settings</span>
+          <span className="mt-1 block text-sm leading-6 text-[#746c61]">
+            Publishing, SEO, visibility, accessibility, and technical display controls.
+          </span>
+        </span>
+        <ChevronDown className="size-5 text-[#8b7d68] transition group-open:rotate-180" />
+      </summary>
+      <div className="space-y-5 border-t border-[#eee4d5] p-4 md:p-5">{children}</div>
+    </details>
+  );
+}
+
+function AboutMediaField({
+  helper,
+  label,
+  onChange,
+  onUpload,
+  options,
+  uploadState,
+  value,
+}: {
+  helper?: string;
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  onUpload: (file: File) => void;
+  uploadState?: { progress: number; message: string; error: string; isUploading: boolean };
+}) {
+  const progress = uploadState?.progress ?? 0;
+  const statusMessage = uploadState?.error || uploadState?.message || "";
+
+  return (
+    <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:col-span-2">
+      <div className="grid gap-4 lg:grid-cols-[0.45fr_1fr]">
+        <div className="overflow-hidden rounded-lg border border-[#ddd6c8] bg-white p-3">
+          {value ? (
+            <img src={value} alt="" className="aspect-[16/10] w-full rounded-md object-cover" />
+          ) : (
+            <div className="grid aspect-[16/10] place-items-center rounded-md bg-[#f4eee4] text-[#8b7d68]">
+              <ImageIcon className="size-6" />
+            </div>
           )}
         </div>
-      </HomeSubsection>
-    </AdminCard>
+        <div className="grid gap-4">
+          <HomeMediaSelect
+            helper={helper}
+            label={label}
+            value={value}
+            options={options}
+            onChange={onChange}
+          />
+          <div className="rounded-lg border border-dashed border-[#dfd3c2] bg-[#fffdf8] p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-bold text-[#2d271f]">Upload from Device</div>
+                <div className="mt-1 text-xs leading-5 text-[#746c61]">
+                  AVIF, GIF, JPG, PNG, or WebP. Max 2MB.
+                </div>
+              </div>
+              <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg bg-[#17130d] px-4 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_-18px_rgba(23,19,13,0.8)] transition hover:bg-[#2b251b]">
+                <UploadCloud className="size-4" />
+                Choose Image
+                <input
+                  type="file"
+                  accept={cmsImageUploadTypes.join(",")}
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) onUpload(file);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            {(uploadState?.isUploading || progress > 0) && (
+              <div className="mt-3">
+                <div className="h-2 overflow-hidden rounded-full bg-[#eee4d5]">
+                  <div
+                    className="h-full rounded-full bg-[#efbc4a] transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="mt-1 text-xs font-semibold text-[#8b7d68]">{progress}%</div>
+              </div>
+            )}
+            {statusMessage && (
+              <div
+                className={`mt-2 flex items-center gap-2 text-xs font-semibold ${
+                  uploadState?.error ? "text-[#9b4b35]" : "text-[#47723f]"
+                }`}
+                role="status"
+              >
+                {!uploadState?.error && <CheckCircle2 className="size-3.5" />}
+                {statusMessage}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -5968,9 +6337,10 @@ function SettingsSection() {
         throw new Error(payload.error?.message ?? "Unable to upload image.");
       }
 
-      updateSetting(key, payload.data.src);
+      const uploadedSrc = payload.data.src;
+      updateSetting(key, uploadedSrc);
       setMediaOptions((current) =>
-        current.includes(payload.data.src) ? current : [payload.data.src, ...current],
+        current.includes(uploadedSrc) ? current : [uploadedSrc, ...current],
       );
       setMessage("Image uploaded. Save settings to publish this change.");
     } catch (uploadError) {
