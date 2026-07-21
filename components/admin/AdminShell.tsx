@@ -210,46 +210,46 @@ export function AdminShell() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex overflow-hidden bg-[#f3efe5] text-[#17130d]">
-      <aside className="hidden w-72 shrink-0 border-r border-[#2b251b] bg-[#12110c] text-[#f7f0df] lg:block">
+    <div className="fixed inset-0 z-[100] flex overflow-hidden bg-[#09090b] text-[#f4f4f5]">
+      <aside className="hidden w-72 shrink-0 border-r border-[#272730] bg-[#0d0d12] text-zinc-100 lg:block">
         <BrandBlock />
         <SidebarNav activeSection={activeSection} onSelect={handleSectionSelect} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex min-h-24 items-center justify-between gap-4 border-b border-[#ddd6c8] bg-white px-5 md:px-8">
+        <header className="flex min-h-24 items-center justify-between gap-4 border-b border-[#272730] bg-[#0f0f14]/90 backdrop-blur-md px-5 md:px-8">
           <div>
-            <div className="text-xs font-bold uppercase tracking-[0.28em] text-[#c0912f]">
+            <div className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">
               Admin Dashboard
             </div>
-            <h1 className="mt-2 font-display text-3xl font-light leading-none md:text-4xl">
+            <h1 className="mt-2 font-display text-3xl font-light leading-none text-zinc-100 md:text-4xl">
               {activeSection === "Dashboard" ? "Content Overview" : activeSection}
             </h1>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-            <label className="hidden items-center gap-2 rounded-lg border border-[#ddd6c8] bg-[#f7f4ec] px-4 py-3 text-sm text-[#80786d] shadow-sm md:flex">
-              <Search className="size-4" />
+            <label className="hidden items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm text-zinc-400 shadow-sm focus-within:border-amber-500/50 transition-all md:flex">
+              <Search className="size-4 text-amber-400" />
               <input
                 aria-label="Search content"
                 placeholder={`Search ${activeMeta.label.toLowerCase()}`}
-                className="w-36 bg-transparent outline-none lg:w-48"
+                className="w-36 bg-transparent text-zinc-100 placeholder:text-zinc-500 outline-none lg:w-48"
               />
             </label>
             <button
               type="button"
               aria-label="Notifications"
-              className="grid size-11 place-items-center rounded-lg border border-[#ddd6c8] bg-white text-[#6f665c] shadow-sm"
+              className="grid size-11 place-items-center rounded-lg border border-[#272730] bg-[#181820] text-zinc-400 hover:text-amber-400 hover:border-amber-500/40 shadow-sm transition"
             >
               <Bell className="size-4" />
             </button>
-            <div className="grid size-11 place-items-center rounded-lg bg-[#17130d] text-sm font-bold text-[#efbc4a] shadow-sm">
+            <div className="grid size-11 place-items-center rounded-lg bg-gradient-to-br from-amber-500 to-yellow-600 text-sm font-bold text-black shadow-[0_0_15px_rgba(212,175,55,0.3)]">
               KD
             </div>
             <button
               type="button"
               onClick={handleLogout}
               aria-label="Logout"
-              className="grid size-11 place-items-center rounded-lg border border-[#ddd6c8] bg-white text-[#6f665c] shadow-sm transition hover:text-[#17130d]"
+              className="grid size-11 place-items-center rounded-lg border border-[#272730] bg-[#181820] text-zinc-400 hover:text-red-400 hover:border-red-500/40 shadow-sm transition"
             >
               <LogOut className="size-4" />
             </button>
@@ -268,12 +268,12 @@ export function AdminShell() {
 function BrandBlock() {
   return (
     <div className="flex h-24 items-center gap-4 border-b border-white/10 px-6">
-      <div className="grid size-11 place-items-center rounded-xl bg-[#efbc4a] text-[#17130d] shadow-[0_16px_38px_-22px_rgba(239,188,74,0.9)]">
+      <div className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-[0_0_20px_rgba(212,175,55,0.4)]">
         <Palette className="size-5" />
       </div>
       <div>
-        <div className="font-semibold leading-tight">Katha Digital</div>
-        <div className="mt-1 text-sm text-white/48">CMS Admin</div>
+        <div className="font-semibold leading-tight text-zinc-100">Katha Digital</div>
+        <div className="mt-1 text-sm text-amber-400/70">CMS Admin</div>
       </div>
     </div>
   );
@@ -295,8 +295,8 @@ function SidebarNav({
           onClick={() => onSelect(item.label)}
           className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
             activeSection === item.label
-              ? "bg-[#efbc4a] text-[#17130d]"
-              : "text-white/64 hover:bg-white/7 hover:text-white"
+              ? "bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-black font-bold shadow-[0_0_20px_rgba(212,175,55,0.25)]"
+              : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100"
           }`}
         >
           <item.icon className="size-4" />
@@ -321,10 +321,10 @@ function MobileNav({
           key={item.label}
           type="button"
           onClick={() => onSelect(item.label)}
-          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold ${
+          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
             activeSection === item.label
-              ? "border-[#d7a33b] bg-[#efbc4a] text-[#17130d]"
-              : "border-[#ddd6c8] bg-white text-[#6f665c]"
+              ? "border-amber-500/50 bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold shadow-[0_0_15px_rgba(212,175,55,0.25)]"
+              : "border-[#272730] bg-[#181820] text-zinc-300 hover:text-amber-300"
           }`}
         >
           {item.label}
@@ -419,20 +419,20 @@ function DashboardSection() {
           return (
             <article
               key={stat.label}
-              className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]"
+              className="rounded-lg border border-[#272730] bg-[#121217] p-6 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)] transition-all duration-300 hover:border-amber-500/30"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-sm font-medium text-[#746c61]">{stat.label}</div>
-                  <div className="mt-4 text-4xl font-bold tracking-tight text-[#0e0c08]">
+                  <div className="text-sm font-medium text-zinc-400">{stat.label}</div>
+                  <div className="mt-4 text-4xl font-bold tracking-tight text-zinc-100">
                     {stat.value}
                   </div>
                 </div>
-                <div className="grid size-11 place-items-center rounded-lg bg-[#f6e8c8] text-[#b98722]">
+                <div className="grid size-11 place-items-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400 shadow-[0_0_12px_rgba(212,175,55,0.15)]">
                   <Icon className="size-5" />
                 </div>
               </div>
-              <p className="mt-6 text-sm text-[#8c8479]">{stat.note}</p>
+              <p className="mt-6 text-sm text-zinc-400">{stat.note}</p>
             </article>
           );
         })}
@@ -453,22 +453,22 @@ function DashboardLoading() {
         {["Published Pages", "New Messages", "Booking Leads", "Portfolio Items"].map((label) => (
           <article
             key={label}
-            className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]"
+            className="rounded-lg border border-[#272730] bg-[#121217] p-6 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)]"
           >
-            <div className="h-4 w-32 animate-pulse rounded bg-[#eee7dc]" />
-            <div className="mt-5 h-10 w-16 animate-pulse rounded bg-[#eee7dc]" />
-            <div className="mt-6 h-4 w-40 animate-pulse rounded bg-[#f4eee4]" />
+            <div className="h-4 w-32 animate-pulse rounded bg-[#272730]" />
+            <div className="mt-5 h-10 w-16 animate-pulse rounded bg-[#272730]" />
+            <div className="mt-6 h-4 w-40 animate-pulse rounded bg-[#181820]" />
           </article>
         ))}
       </section>
       <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.48fr]">
         <AdminCard>
-          <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
-          <div className="mt-6 h-56 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
+          <div className="mt-6 h-56 animate-pulse rounded-lg bg-[#181820]" />
         </AdminCard>
         <AdminCard>
-          <div className="h-7 w-36 animate-pulse rounded bg-[#eee7dc]" />
-          <div className="mt-6 h-32 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-7 w-36 animate-pulse rounded bg-[#272730]" />
+          <div className="mt-6 h-32 animate-pulse rounded-lg bg-[#181820]" />
         </AdminCard>
       </section>
     </>
@@ -479,8 +479,8 @@ function DashboardError({ message }: { message: string }) {
   return (
     <AdminCard>
       <div className="max-w-xl">
-        <h2 className="font-display text-3xl font-light">Dashboard unavailable</h2>
-        <p className="mt-3 text-sm leading-6 text-[#746c61]">{message}</p>
+        <h2 className="font-display text-3xl font-light text-zinc-100">Dashboard unavailable</h2>
+        <p className="mt-3 text-sm leading-6 text-red-400">{message}</p>
       </div>
     </AdminCard>
   );
@@ -490,8 +490,8 @@ function DashboardEmpty() {
   return (
     <AdminCard>
       <div className="max-w-xl">
-        <h2 className="font-display text-3xl font-light">No dashboard data yet</h2>
-        <p className="mt-3 text-sm leading-6 text-[#746c61]">
+        <h2 className="font-display text-3xl font-light text-zinc-100">No dashboard data yet</h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">
           CMS records will appear here after content is available in the database.
         </p>
       </div>
@@ -667,18 +667,18 @@ function HomeContentEditor({
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-xl border border-[#ddd6c8] bg-white shadow-[0_18px_48px_-32px_rgba(23,19,13,0.48)]">
-        <div className="border-b border-[#ece4d8] bg-[#fffdf8] p-5 md:p-6">
+      <section className="overflow-hidden rounded-xl border border-[#272730] bg-[#121217] shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)]">
+        <div className="border-b border-[#272730] bg-[#16161d] p-5 md:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#efd8a5] bg-[#fff8e8] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[#9c6d13]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-amber-400">
                 <Sparkles className="size-3.5" />
                 Homepage Editor
               </div>
-              <h2 className="mt-4 font-display text-3xl font-light leading-tight md:text-4xl">
+              <h2 className="mt-4 font-display text-3xl font-light leading-tight text-zinc-100 md:text-4xl">
                 Edit the homepage, section by section.
               </h2>
-              <p className="mt-3 text-sm leading-6 text-[#746c61]">
+              <p className="mt-3 text-sm leading-6 text-zinc-400">
                 Update the words, images, buttons, and section visibility without changing how the
                 public homepage is built.
               </p>
@@ -692,13 +692,13 @@ function HomeContentEditor({
                 value={status}
                 onChange={(value) => setStatus(value as "draft" | "published" | "archived")}
               />
-              <div className="rounded-lg border border-[#e8dece] bg-[#faf7ef] p-4">
-                <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b7d68]">
+              <div className="rounded-lg border border-[#272730] bg-[#181822] p-4">
+                <div className="text-xs font-bold uppercase tracking-[0.16em] text-amber-400/80">
                   Visible Sections
                 </div>
                 <div className="mt-2 flex items-end gap-2">
-                  <span className="font-display text-4xl text-[#17130d]">{visibleCount}</span>
-                  <span className="pb-1 text-sm text-[#746c61]">of 10 enabled</span>
+                  <span className="font-display text-4xl text-amber-400">{visibleCount}</span>
+                  <span className="pb-1 text-sm text-zinc-400">of 10 enabled</span>
                 </div>
               </div>
             </div>
@@ -710,8 +710,8 @@ function HomeContentEditor({
             role="status"
             className={`m-5 flex items-start gap-3 rounded-lg border px-4 py-3 text-sm md:m-6 ${
               error
-                ? "border-[#edd8d1] bg-[#fff7f4] text-[#9b4b35]"
-                : "border-[#d8c79d] bg-[#fff9eb] text-[#856322]"
+                ? "border-red-500/30 bg-red-950/40 text-red-300"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-300"
             }`}
           >
             {error ? (
@@ -723,16 +723,16 @@ function HomeContentEditor({
           </div>
         )}
 
-        <div className="sticky top-0 z-10 border-b border-[#ece4d8] bg-white/95 px-5 py-3 backdrop-blur md:px-6">
+        <div className="sticky top-0 z-10 border-b border-[#272730] bg-[#0f0f14]/95 px-5 py-3 backdrop-blur md:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-[#746c61]">
+            <div className="text-sm text-zinc-400">
               Changes stay in this editor until you save them.
             </div>
             <button
               type="button"
               onClick={onSave}
               disabled={isSaving}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#efbc4a] px-5 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] transition hover:bg-[#e4ad34] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit active:scale-[0.98]"
             >
               <Save className="size-4" />
               {isSaving ? "Saving..." : "Save Homepage"}
@@ -740,7 +740,7 @@ function HomeContentEditor({
           </div>
         </div>
 
-        <div className="space-y-4 bg-[#f7f2e8] p-4 md:p-6">
+        <div className="space-y-4 bg-[#0d0d12] p-4 md:p-6">
           <HomeEditorPanel
             defaultOpen
             description="The first screen visitors see: background image, headline, buttons, and quick stats."
@@ -788,16 +788,16 @@ function HomeContentEditor({
               />
             </div>
 
-            <div className="rounded-lg border border-[#eadfcd] bg-white p-4">
-              <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#2d271f]">
-                <Share2 className="size-4 text-[#b98722]" />
+            <div className="rounded-lg border border-[#272730] bg-[#181822] p-4">
+              <div className="mb-4 flex items-center gap-2 text-sm font-bold text-zinc-100">
+                <Share2 className="size-4 text-amber-400" />
                 Buttons
               </div>
               <div className="grid gap-4 xl:grid-cols-3">
                 {content.actions.map((action, index) => (
                   <div
                     key={action.variant}
-                    className="rounded-lg border border-[#eee4d5] bg-[#fffbf5] p-4"
+                    className="rounded-lg border border-[#272730] bg-[#16161d] p-4"
                   >
                     <HomeButtonPreview label={action.label} variant={action.variant} />
                     <div className="mt-4 grid gap-3">
@@ -1340,32 +1340,32 @@ function HomeEditorPanel({
   return (
     <details
       open={defaultOpen}
-      className="group rounded-xl border border-[#e0d6c7] bg-white shadow-[0_16px_42px_-34px_rgba(23,19,13,0.5)]"
+      className="group rounded-xl border border-[#272730] bg-[#121217] shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)]"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-[#fffaf1] focus-visible:ring-2 focus-visible:ring-[#d7a33b] md:p-5 [&::-webkit-details-marker]:hidden">
-        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[#f6e8c8] text-[#b98722]">
+      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-amber-500/50 md:p-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400 shadow-[0_0_12px_rgba(212,175,55,0.15)]">
           <Icon className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="font-display text-2xl font-light text-[#17130d]">{title}</span>
+            <span className="font-display text-2xl font-light text-zinc-100">{title}</span>
             {visible ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#edf8ec] px-2.5 py-1 text-xs font-bold text-[#47723f]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1 text-xs font-bold text-emerald-300">
                 <Eye className="size-3.5" />
                 Visible
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#f4eee4] px-2.5 py-1 text-xs font-bold text-[#8b7d68]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/60 px-2.5 py-1 text-xs font-bold text-zinc-400">
                 <EyeOff className="size-3.5" />
                 Hidden
               </span>
             )}
           </span>
-          <span className="mt-1 block text-sm leading-6 text-[#746c61]">{description}</span>
+          <span className="mt-1 block text-sm leading-6 text-zinc-400">{description}</span>
         </span>
-        <ChevronDown className="size-5 text-[#8b7d68] transition group-open:rotate-180" />
+        <ChevronDown className="size-5 text-zinc-400 transition group-open:rotate-180" />
       </summary>
-      <div className="space-y-5 border-t border-[#eee4d5] p-4 md:p-5">
+      <div className="space-y-5 border-t border-[#272730] p-4 md:p-5">
         {onVisibilityChange && (
           <HomeVisibilityToggle
             checked={visible}
@@ -1383,12 +1383,12 @@ function HomeEditorPanel({
 
 function HomeAdvancedSettings({ children }: { children: React.ReactNode }) {
   return (
-    <details className="rounded-lg border border-[#eadfcd] bg-[#fffbf5]">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[#3b352c] outline-none focus-visible:ring-2 focus-visible:ring-[#d7a33b] [&::-webkit-details-marker]:hidden">
+    <details className="rounded-lg border border-[#272730] bg-[#181822]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-zinc-200 outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 [&::-webkit-details-marker]:hidden">
         Advanced Settings
-        <ChevronDown className="size-4 text-[#8b7d68]" />
+        <ChevronDown className="size-4 text-zinc-400" />
       </summary>
-      <div className="border-t border-[#eee4d5] p-4">{children}</div>
+      <div className="border-t border-[#272730] p-4">{children}</div>
     </details>
   );
 }
@@ -1403,13 +1403,13 @@ function HomeVisibilityToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-4 rounded-lg border border-[#eadfcd] bg-[#fffdf8] p-4 text-sm font-semibold text-[#3b352c]">
+    <label className="flex items-center justify-between gap-4 rounded-lg border border-[#272730] bg-[#16161d] p-4 text-sm font-semibold text-zinc-200">
       <span>{label}</span>
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="size-5 accent-[#d7a33b]"
+        className="size-5 accent-amber-400"
       />
     </label>
   );
@@ -1430,14 +1430,14 @@ function HomeEditorInput({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[#2d271f]">{label}</span>
+      <span className="mb-2 block text-sm font-bold text-zinc-200">{label}</span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b] focus:ring-2 focus:ring-[#f4dfab]"
+        className="w-full rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-amber-500/70 focus:ring-1 focus:ring-amber-500/30"
       />
-      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+      {helper && <span className="mt-2 block text-xs leading-5 text-zinc-400">{helper}</span>}
     </label>
   );
 }
@@ -1455,14 +1455,14 @@ function HomeEditorTextarea({
 }) {
   return (
     <label className="block lg:col-span-2">
-      <span className="mb-2 block text-sm font-bold text-[#2d271f]">{label}</span>
+      <span className="mb-2 block text-sm font-bold text-zinc-200">{label}</span>
       <textarea
         value={value}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full resize-y rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm leading-6 text-[#2d271f] outline-none transition focus:border-[#d7a33b] focus:ring-2 focus:ring-[#f4dfab]"
+        className="w-full resize-y rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm leading-6 text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-amber-500/70 focus:ring-1 focus:ring-amber-500/30"
       />
-      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+      {helper && <span className="mt-2 block text-xs leading-5 text-zinc-400">{helper}</span>}
     </label>
   );
 }
@@ -1482,19 +1482,19 @@ function HomeEditorSelect({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[#2d271f]">{label}</span>
+      <span className="mb-2 block text-sm font-bold text-zinc-200">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm capitalize text-[#2d271f] outline-none transition focus:border-[#d7a33b] focus:ring-2 focus:ring-[#f4dfab]"
+        className="w-full rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm capitalize text-zinc-100 outline-none transition focus:border-amber-500/70 focus:ring-1 focus:ring-amber-500/30"
       >
         {options.map((option) => (
-          <option key={option} value={option}>
+          <option key={option} value={option} className="bg-[#181820] text-zinc-100">
             {option}
           </option>
         ))}
       </select>
-      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+      {helper && <span className="mt-2 block text-xs leading-5 text-zinc-400">{helper}</span>}
     </label>
   );
 }
@@ -1656,23 +1656,23 @@ function HomeImageUploadDropzone({
         setIsDragging(false);
         handleFiles(event.dataTransfer.files);
       }}
-      className={`rounded-lg border border-dashed p-3 transition ${
-        isDragging ? "border-[#d7a33b] bg-[#fff8e8]" : "border-[#dfd3c2] bg-[#fffdf8]"
+      className={`rounded-lg border border-dashed p-3 transition-all ${
+        isDragging ? "border-amber-500 bg-amber-500/10 text-amber-300" : "border-[#3f3f46] bg-[#181820]/70 text-zinc-300 hover:border-amber-500/40"
       }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="h-20 w-full overflow-hidden rounded-md border border-[#eadfcd] bg-[#f4eee4] sm:w-28">
+        <div className="h-20 w-full overflow-hidden rounded-md border border-[#272730] bg-[#121217] sm:w-28">
           {previewSrc ? (
             <img src={previewSrc} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="grid h-full place-items-center text-[#8b7d68]">
+            <div className="grid h-full place-items-center text-zinc-500">
               <ImageIcon className="size-5" />
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#17130d] px-4 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_-18px_rgba(23,19,13,0.8)] transition hover:bg-[#2b251b]">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-bold text-amber-400 shadow-sm transition hover:bg-amber-500/20">
               <UploadCloud className="size-4" />
               Upload from Device
               <input
@@ -1685,25 +1685,25 @@ function HomeImageUploadDropzone({
                 }}
               />
             </label>
-            <span className="text-xs leading-5 text-[#746c61]">
+            <span className="text-xs leading-5 text-zinc-400">
               Drop an image here for {fieldLabel.toLowerCase()}.
             </span>
           </div>
           {(isUploading || progress > 0) && (
             <div className="mt-3">
-              <div className="h-2 overflow-hidden rounded-full bg-[#eee4d5]">
+              <div className="h-2 overflow-hidden rounded-full bg-[#272730]">
                 <div
-                  className="h-full rounded-full bg-[#efbc4a] transition-all"
+                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <div className="mt-1 text-xs font-semibold text-[#8b7d68]">{progress}%</div>
+              <div className="mt-1 text-xs font-semibold text-amber-400">{progress}%</div>
             </div>
           )}
           {(uploadMessage || uploadError) && (
             <div
               className={`mt-2 text-xs font-semibold ${
-                uploadError ? "text-[#9b4b35]" : "text-[#47723f]"
+                uploadError ? "text-red-400" : "text-emerald-400"
               }`}
               role="status"
             >
@@ -1718,10 +1718,10 @@ function HomeImageUploadDropzone({
 
 function HomePreviewImage({ alt, label, src }: { alt: string; label: string; src: string }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-[#eadfcd] bg-[#17130d]">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-sm font-bold text-white">
+    <div className="overflow-hidden rounded-lg border border-[#272730] bg-[#121217]">
+      <div className="flex items-center justify-between gap-3 border-b border-[#272730] px-4 py-3 text-sm font-bold text-zinc-100">
         <span>{label}</span>
-        <ImageIcon className="size-4 text-[#efbc4a]" />
+        <ImageIcon className="size-4 text-amber-400" />
       </div>
       <img src={src} alt={alt} className="aspect-[16/7] w-full object-cover" />
     </div>
@@ -1737,10 +1737,10 @@ function HomeButtonPreview({
 }) {
   const className =
     variant === "primary"
-      ? "bg-[#efbc4a] text-[#17130d]"
+      ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold shadow-[0_0_12px_rgba(212,175,55,0.25)]"
       : variant === "secondary"
-        ? "border border-[#d7a33b] bg-white text-[#17130d]"
-        : "border border-[#e6dccd] bg-[#faf8f2] text-[#3b352c]";
+        ? "border border-amber-500/40 bg-[#181820] text-amber-300"
+        : "border border-[#272730] bg-[#16161d] text-zinc-300";
 
   return (
     <div
@@ -1753,8 +1753,8 @@ function HomeButtonPreview({
 
 function HomeSubsection({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <div className="mt-8 border-t border-[#e4ded3] pt-6">
-      <h3 className="font-display text-2xl font-light">{title}</h3>
+    <div className="mt-8 border-t border-[#272730] pt-6">
+      <h3 className="font-display text-2xl font-light text-zinc-100">{title}</h3>
       <div className="mt-5 space-y-5">{children}</div>
     </div>
   );
@@ -1773,15 +1773,15 @@ function HomeInput({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">
         {label}
       </span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+        className="w-full rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-amber-500/70"
       />
-      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+      {helper && <span className="mt-2 block text-xs leading-5 text-zinc-400">{helper}</span>}
     </label>
   );
 }
@@ -1799,16 +1799,16 @@ function HomeTextarea({
 }) {
   return (
     <label className="block md:col-span-2">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">
         {label}
       </span>
       <textarea
         value={value}
         rows={3}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full resize-none rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+        className="w-full resize-none rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-amber-500/70"
       />
-      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+      {helper && <span className="mt-2 block text-xs leading-5 text-zinc-400">{helper}</span>}
     </label>
   );
 }
@@ -1828,21 +1828,21 @@ function HomeSelect({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+        className="w-full rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-amber-500/70"
       >
         {options.map((option) => (
-          <option key={option} value={option}>
+          <option key={option} value={option} className="bg-[#181820] text-zinc-100">
             {option}
           </option>
         ))}
       </select>
-      {helper && <span className="mt-2 block text-xs leading-5 text-[#746c61]">{helper}</span>}
+      {helper && <span className="mt-2 block text-xs leading-5 text-zinc-400">{helper}</span>}
     </label>
   );
 }
@@ -1881,12 +1881,12 @@ function HomeCheckbox({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 text-sm font-semibold text-[#3b352c]">
+    <label className="flex items-center gap-3 rounded-lg border border-[#272730] bg-[#181820] p-4 text-sm font-semibold text-zinc-200">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="size-4 accent-[#d7a33b]"
+        className="size-4 accent-amber-400"
       />
       {label}
     </label>
@@ -1913,8 +1913,8 @@ function HomeSectionFields<T extends EditableSection>({
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:col-span-2">
-      <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#b98722]">{label}</div>
+    <div className="space-y-4 rounded-lg border border-[#272730] bg-[#181820] p-4 md:col-span-2">
+      <div className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">{label}</div>
       <div className="grid gap-4 md:grid-cols-2">
         <HomeInput
           label={`${label} Eyebrow`}
@@ -2696,39 +2696,39 @@ function AboutEditorSection({
   return (
     <details
       open={defaultOpen}
-      className="group rounded-xl border border-[#e0d6c7] bg-white shadow-[0_16px_42px_-34px_rgba(23,19,13,0.5)]"
+      className="group rounded-xl border border-[#272730] bg-[#121217] shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)]"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-[#fffaf1] focus-visible:ring-2 focus-visible:ring-[#d7a33b] md:p-5 [&::-webkit-details-marker]:hidden">
-        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[#f6e8c8] text-[#b98722]">
+      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-amber-500/50 md:p-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400 shadow-[0_0_12px_rgba(212,175,55,0.15)]">
           <Icon className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="font-display text-2xl font-light text-[#17130d]">{title}</span>
-          <span className="mt-1 block text-sm leading-6 text-[#746c61]">{description}</span>
+          <span className="font-display text-2xl font-light text-zinc-100">{title}</span>
+          <span className="mt-1 block text-sm leading-6 text-zinc-400">{description}</span>
         </span>
-        <ChevronDown className="size-5 text-[#8b7d68] transition group-open:rotate-180" />
+        <ChevronDown className="size-5 text-zinc-400 transition group-open:rotate-180" />
       </summary>
-      <div className="space-y-5 border-t border-[#eee4d5] p-4 md:p-5">{children}</div>
+      <div className="space-y-5 border-t border-[#272730] p-4 md:p-5">{children}</div>
     </details>
   );
 }
 
 function AboutAdvancedSettings({ children }: { children: React.ReactNode }) {
   return (
-    <details className="rounded-xl border border-[#e0d6c7] bg-[#fffbf5] shadow-[0_16px_42px_-34px_rgba(23,19,13,0.5)]">
-      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-[#fffaf1] focus-visible:ring-2 focus-visible:ring-[#d7a33b] md:p-5 [&::-webkit-details-marker]:hidden">
-        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[#f4eee4] text-[#8b7d68]">
+    <details className="rounded-xl border border-[#272730] bg-[#181822] shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)]">
+      <summary className="flex cursor-pointer list-none items-center gap-4 p-4 outline-none transition hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-amber-500/50 md:p-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-[#272730] bg-[#272730] text-zinc-400">
           <Settings className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="font-display text-2xl font-light text-[#17130d]">Advanced Settings</span>
-          <span className="mt-1 block text-sm leading-6 text-[#746c61]">
+          <span className="font-display text-2xl font-light text-zinc-100">Advanced Settings</span>
+          <span className="mt-1 block text-sm leading-6 text-zinc-400">
             Publishing, SEO, visibility, accessibility, and technical display controls.
           </span>
         </span>
-        <ChevronDown className="size-5 text-[#8b7d68] transition group-open:rotate-180" />
+        <ChevronDown className="size-5 text-zinc-400 transition group-open:rotate-180" />
       </summary>
-      <div className="space-y-5 border-t border-[#eee4d5] p-4 md:p-5">{children}</div>
+      <div className="space-y-5 border-t border-[#272730] p-4 md:p-5">{children}</div>
     </details>
   );
 }
@@ -2754,13 +2754,13 @@ function AboutMediaField({
   const statusMessage = uploadState?.error || uploadState?.message || "";
 
   return (
-    <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 md:col-span-2">
+    <div className="rounded-lg border border-[#272730] bg-[#181820] p-4 md:col-span-2">
       <div className="grid gap-4 lg:grid-cols-[0.45fr_1fr]">
-        <div className="overflow-hidden rounded-lg border border-[#ddd6c8] bg-white p-3">
+        <div className="overflow-hidden rounded-lg border border-[#272730] bg-[#121217] p-3">
           {value ? (
             <img src={value} alt="" className="aspect-[16/10] w-full rounded-md object-cover" />
           ) : (
-            <div className="grid aspect-[16/10] place-items-center rounded-md bg-[#f4eee4] text-[#8b7d68]">
+            <div className="grid aspect-[16/10] place-items-center rounded-md bg-[#181820] text-zinc-500">
               <ImageIcon className="size-6" />
             </div>
           )}
@@ -2773,15 +2773,15 @@ function AboutMediaField({
             options={options}
             onChange={onChange}
           />
-          <div className="rounded-lg border border-dashed border-[#dfd3c2] bg-[#fffdf8] p-3">
+          <div className="rounded-lg border border-dashed border-[#3f3f46] bg-[#121217] p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm font-bold text-[#2d271f]">Upload from Device</div>
-                <div className="mt-1 text-xs leading-5 text-[#746c61]">
+                <div className="text-sm font-bold text-zinc-200">Upload from Device</div>
+                <div className="mt-1 text-xs leading-5 text-zinc-400">
                   AVIF, GIF, JPG, PNG, or WebP. Max 2MB.
                 </div>
               </div>
-              <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg bg-[#17130d] px-4 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_-18px_rgba(23,19,13,0.8)] transition hover:bg-[#2b251b]">
+              <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-bold text-amber-400 shadow-sm transition hover:bg-amber-500/20">
                 <UploadCloud className="size-4" />
                 Choose Image
                 <input
@@ -2798,19 +2798,19 @@ function AboutMediaField({
             </div>
             {(uploadState?.isUploading || progress > 0) && (
               <div className="mt-3">
-                <div className="h-2 overflow-hidden rounded-full bg-[#eee4d5]">
+                <div className="h-2 overflow-hidden rounded-full bg-[#272730]">
                   <div
-                    className="h-full rounded-full bg-[#efbc4a] transition-all"
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className="mt-1 text-xs font-semibold text-[#8b7d68]">{progress}%</div>
+                <div className="mt-1 text-xs font-semibold text-amber-400">{progress}%</div>
               </div>
             )}
             {statusMessage && (
               <div
                 className={`mt-2 flex items-center gap-2 text-xs font-semibold ${
-                  uploadState?.error ? "text-[#9b4b35]" : "text-[#47723f]"
+                  uploadState?.error ? "text-red-400" : "text-emerald-400"
                 }`}
                 role="status"
               >
@@ -3051,10 +3051,10 @@ function ServicesContentSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
         <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
       </AdminCard>
     );
@@ -3065,15 +3065,15 @@ function ServicesContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
           <div>
-            <h2 className="font-display text-3xl font-light">Services</h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <h2 className="font-display text-3xl font-light text-zinc-100">Services</h2>
+            <p className="mt-2 text-sm text-zinc-400">
               Manage the services shown on the public Services page.
             </p>
           </div>
           <button
             type="button"
             onClick={startNewService}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300"
           >
             <Plus className="size-4" />
             Add Service
@@ -3091,19 +3091,19 @@ function ServicesContentSection() {
         </div>
 
         {message && (
-          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
             {message}
           </div>
         )}
         {error && (
-          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+          <div className="mt-5 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
             {error}
           </div>
         )}
 
         <div className="mt-6 space-y-3">
           {filteredServices.length === 0 ? (
-            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+            <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
               No services match this search.
             </div>
           ) : (
@@ -3114,10 +3114,10 @@ function ServicesContentSection() {
                 onDragStart={() => setDraggedId(service.id)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={() => void reorderServices(draggedId, service.id)}
-                className={`rounded-lg border p-3 transition ${
+                className={`rounded-lg border p-3 transition-all ${
                   draft.id === service.id
-                    ? "border-[#d7a33b] bg-[#fff8e7]"
-                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                    ? "border-amber-500/60 bg-amber-500/10"
+                    : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
                 }`}
               >
                 <button
@@ -3128,10 +3128,10 @@ function ServicesContentSection() {
                   <div className="flex items-center gap-3">
                     <img src={service.image} alt="" className="h-14 w-16 rounded-md object-cover" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-[#211d16]">
+                      <div className="truncate text-sm font-bold text-zinc-100">
                         {service.title}
                       </div>
-                      <div className="mt-1 text-xs text-[#746c61]">{service.status}</div>
+                      <div className="mt-1 text-xs text-zinc-400">{service.status}</div>
                     </div>
                   </div>
                 </button>
@@ -3139,7 +3139,7 @@ function ServicesContentSection() {
                   <button
                     type="button"
                     onClick={() => editService(service)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
                   >
                     <Edit3 className="size-3.5" />
                     Edit
@@ -3147,7 +3147,7 @@ function ServicesContentSection() {
                   <button
                     type="button"
                     onClick={() => deleteService(service)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
                   >
                     <Trash2 className="size-3.5" />
                     Delete
@@ -3162,10 +3162,10 @@ function ServicesContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-display text-3xl font-light">
+            <h2 className="font-display text-3xl font-light text-zinc-100">
               {draft.id ? "Edit Service" : "Add Service"}
             </h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <p className="mt-2 text-sm text-zinc-400">
               Keep service copy, imagery, display order, and publishing status accurate.
             </p>
           </div>
@@ -3173,7 +3173,7 @@ function ServicesContentSection() {
             type="button"
             onClick={saveService}
             disabled={isSaving}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 disabled:opacity-60 active:scale-[0.98]"
           >
             <Save className="size-4" />
             {isSaving ? "Saving..." : "Save"}
@@ -3518,10 +3518,10 @@ function ProductionsContentSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
         <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
       </AdminCard>
     );
@@ -3532,15 +3532,15 @@ function ProductionsContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
           <div>
-            <h2 className="font-display text-3xl font-light">Productions</h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <h2 className="font-display text-3xl font-light text-zinc-100">Productions</h2>
+            <p className="mt-2 text-sm text-zinc-400">
               Manage original productions, videos, episodes, and upcoming formats.
             </p>
           </div>
           <button
             type="button"
             onClick={startNewProduction}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300"
           >
             <Plus className="size-4" />
             Add Production
@@ -3564,19 +3564,19 @@ function ProductionsContentSection() {
         </div>
 
         {message && (
-          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
             {message}
           </div>
         )}
         {error && (
-          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+          <div className="mt-5 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
             {error}
           </div>
         )}
 
         <div className="mt-6 space-y-3">
           {filteredProductions.length === 0 ? (
-            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+            <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
               No productions match this search.
             </div>
           ) : (
@@ -3587,10 +3587,10 @@ function ProductionsContentSection() {
                 onDragStart={() => setDraggedId(production.id)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={() => void reorderProductions(draggedId, production.id)}
-                className={`rounded-lg border p-3 transition ${
+                className={`rounded-lg border p-3 transition-all ${
                   draft.id === production.id
-                    ? "border-[#d7a33b] bg-[#fff8e7]"
-                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                    ? "border-amber-500/60 bg-amber-500/10"
+                    : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
                 }`}
               >
                 <button
@@ -3599,14 +3599,14 @@ function ProductionsContentSection() {
                   className="block w-full text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="grid h-14 w-16 shrink-0 place-items-center rounded-md bg-[#17130d] text-[#efbc4a]">
+                    <div className="grid h-14 w-16 shrink-0 place-items-center rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-400">
                       <Video className="size-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-[#211d16]">
+                      <div className="truncate text-sm font-bold text-zinc-100">
                         {production.title}
                       </div>
-                      <div className="mt-1 text-xs text-[#746c61]">
+                      <div className="mt-1 text-xs text-zinc-400">
                         {production.type} / {production.status}
                       </div>
                     </div>
@@ -3616,7 +3616,7 @@ function ProductionsContentSection() {
                   <button
                     type="button"
                     onClick={() => editProduction(production)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
                   >
                     <Edit3 className="size-3.5" />
                     Edit
@@ -3624,7 +3624,7 @@ function ProductionsContentSection() {
                   <button
                     type="button"
                     onClick={() => deleteProduction(production)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
                   >
                     <Trash2 className="size-3.5" />
                     Delete
@@ -3639,10 +3639,10 @@ function ProductionsContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-display text-3xl font-light">
+            <h2 className="font-display text-3xl font-light text-zinc-100">
               {draft.id ? "Edit Production" : "Add Production"}
             </h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <p className="mt-2 text-sm text-zinc-400">
               Keep production copy, episodes, videos, and publishing status aligned with the site.
             </p>
           </div>
@@ -4087,10 +4087,10 @@ function NewsContentSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
         <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
       </AdminCard>
     );
@@ -4101,15 +4101,15 @@ function NewsContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
           <div>
-            <h2 className="font-display text-3xl font-light">News</h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <h2 className="font-display text-3xl font-light text-zinc-100">News</h2>
+            <p className="mt-2 text-sm text-zinc-400">
               Manage journal posts shown on the public News page.
             </p>
           </div>
           <button
             type="button"
             onClick={startNewPost}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300"
           >
             <Plus className="size-4" />
             Add Post
@@ -4133,19 +4133,19 @@ function NewsContentSection() {
         </div>
 
         {message && (
-          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
             {message}
           </div>
         )}
         {error && (
-          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+          <div className="mt-5 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
             {error}
           </div>
         )}
 
         <div className="mt-6 space-y-3">
           {filteredPosts.length === 0 ? (
-            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+            <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
               No news posts match this search.
             </div>
           ) : (
@@ -4156,10 +4156,10 @@ function NewsContentSection() {
                 onDragStart={() => setDraggedId(post.id)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={() => void reorderPosts(draggedId, post.id)}
-                className={`rounded-lg border p-3 transition ${
+                className={`rounded-lg border p-3 transition-all ${
                   draft.id === post.id
-                    ? "border-[#d7a33b] bg-[#fff8e7]"
-                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                    ? "border-amber-500/60 bg-amber-500/10"
+                    : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
                 }`}
               >
                 <button
@@ -4170,8 +4170,8 @@ function NewsContentSection() {
                   <div className="flex items-center gap-3">
                     <img src={post.image} alt="" className="h-14 w-16 rounded-md object-cover" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-[#211d16]">{post.title}</div>
-                      <div className="mt-1 text-xs text-[#746c61]">
+                      <div className="truncate text-sm font-bold text-zinc-100">{post.title}</div>
+                      <div className="mt-1 text-xs text-zinc-400">
                         {post.category} / {post.status}
                       </div>
                     </div>
@@ -4181,7 +4181,7 @@ function NewsContentSection() {
                   <button
                     type="button"
                     onClick={() => editPost(post)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
                   >
                     <Edit3 className="size-3.5" />
                     Edit
@@ -4189,7 +4189,7 @@ function NewsContentSection() {
                   <button
                     type="button"
                     onClick={() => deletePost(post)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
                   >
                     <Trash2 className="size-3.5" />
                     Delete
@@ -4204,10 +4204,10 @@ function NewsContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-display text-3xl font-light">
+            <h2 className="font-display text-3xl font-light text-zinc-100">
               {draft.id ? "Edit News Post" : "Add News Post"}
             </h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <p className="mt-2 text-sm text-zinc-400">
               Keep titles, excerpts, categories, images, and publishing status accurate.
             </p>
           </div>
@@ -4215,7 +4215,7 @@ function NewsContentSection() {
             <button
               type="button"
               onClick={() => setIsPreviewOpen((current) => !current)}
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
             >
               <Search className="size-4" />
               Preview
@@ -4224,7 +4224,7 @@ function NewsContentSection() {
               type="button"
               onClick={savePost}
               disabled={isSaving}
-              className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+              className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 disabled:opacity-60 active:scale-[0.98]"
             >
               <Save className="size-4" />
               {isSaving ? "Saving..." : "Save"}
@@ -4233,21 +4233,21 @@ function NewsContentSection() {
         </div>
 
         {isPreviewOpen && (
-          <div className="mt-6 overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2]">
+          <div className="mt-6 overflow-hidden rounded-lg border border-[#272730] bg-[#181820]">
             <img
               src={draft.image}
               alt=""
               className={`aspect-[16/8] w-full object-cover ${draft.position}`}
             />
             <div className="p-5">
-              <div className="text-xs uppercase tracking-[0.2em] text-[#b98722]">
+              <div className="text-xs uppercase tracking-[0.2em] text-amber-400">
                 {draft.category}
               </div>
-              <h3 className="mt-3 font-display text-3xl font-light">
+              <h3 className="mt-3 font-display text-3xl font-light text-zinc-100">
                 {draft.title || "Untitled post"}
               </h3>
-              <p className="mt-3 text-sm leading-6 text-[#746c61]">{draft.excerpt}</p>
-              <div className="mt-4 flex flex-wrap gap-x-3 text-xs uppercase tracking-widest text-[#8c8479]">
+              <p className="mt-3 text-sm leading-6 text-zinc-400">{draft.excerpt}</p>
+              <div className="mt-4 flex flex-wrap gap-x-3 text-xs uppercase tracking-widest text-zinc-400">
                 <span>{draft.author}</span>
                 <span>{draft.date}</span>
               </div>
@@ -4297,7 +4297,7 @@ function NewsContentSection() {
 
         <HomeSubsection title="Images & Media">
           <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
-            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
+            <div className="overflow-hidden rounded-lg border border-[#272730] bg-[#181820] p-3">
               <img
                 src={draft.image}
                 alt=""
@@ -4353,14 +4353,14 @@ function NewsContentSection() {
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "published"))}
-              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300"
             >
               Publish
             </button>
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "draft"))}
-              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+              className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
             >
               Unpublish
             </button>
@@ -5128,10 +5128,10 @@ function EventsContentSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-48 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="h-7 w-48 animate-pulse rounded bg-[#272730]" />
         <div className="mt-6 grid gap-5 lg:grid-cols-[0.42fr_1fr]">
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
       </AdminCard>
     );
@@ -5142,15 +5142,15 @@ function EventsContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col">
           <div>
-            <h2 className="font-display text-3xl font-light">Events</h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <h2 className="font-display text-3xl font-light text-zinc-100">Events</h2>
+            <p className="mt-2 text-sm text-zinc-400">
               Manage upcoming and completed event coverage shown on the public Events page.
             </p>
           </div>
           <button
             type="button"
             onClick={startNewEvent}
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#17130d] px-4 py-3 text-sm font-bold text-[#efbc4a] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300"
           >
             <Plus className="size-4" />
             Add Event
@@ -5177,19 +5177,19 @@ function EventsContentSection() {
         </div>
 
         {message && (
-          <div className="mt-5 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
             {message}
           </div>
         )}
         {error && (
-          <div className="mt-5 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+          <div className="mt-5 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
             {error}
           </div>
         )}
 
         <div className="mt-6 space-y-3">
           {filteredEvents.length === 0 ? (
-            <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+            <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
               No events match this search.
             </div>
           ) : (
@@ -5200,10 +5200,10 @@ function EventsContentSection() {
                 onDragStart={() => setDraggedId(event.id)}
                 onDragOver={(dragEvent) => dragEvent.preventDefault()}
                 onDrop={() => void reorderEvents(draggedId, event.id)}
-                className={`rounded-lg border p-3 transition ${
+                className={`rounded-lg border p-3 transition-all ${
                   draft.id === event.id
-                    ? "border-[#d7a33b] bg-[#fff8e7]"
-                    : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                    ? "border-amber-500/60 bg-amber-500/10"
+                    : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
                 }`}
               >
                 <button
@@ -5214,8 +5214,8 @@ function EventsContentSection() {
                   <div className="flex items-center gap-3">
                     <img src={event.image} alt="" className="h-14 w-16 rounded-md object-cover" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-[#211d16]">{event.name}</div>
-                      <div className="mt-1 text-xs text-[#746c61]">
+                      <div className="truncate text-sm font-bold text-zinc-100">{event.name}</div>
+                      <div className="mt-1 text-xs text-zinc-400">
                         {event.dateLabel} / {event.eventStatus} / {event.status}
                       </div>
                     </div>
@@ -5225,7 +5225,7 @@ function EventsContentSection() {
                   <button
                     type="button"
                     onClick={() => editEvent(event)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
                   >
                     <Edit3 className="size-3.5" />
                     Edit
@@ -5233,7 +5233,7 @@ function EventsContentSection() {
                   <button
                     type="button"
                     onClick={() => deleteEvent(event)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
                   >
                     <Trash2 className="size-3.5" />
                     Delete
@@ -5248,10 +5248,10 @@ function EventsContentSection() {
       <AdminCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-display text-3xl font-light">
+            <h2 className="font-display text-3xl font-light text-zinc-100">
               {draft.id ? "Edit Event" : "Add Event"}
             </h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <p className="mt-2 text-sm text-zinc-400">
               Keep event dates, locations, descriptions, images, and publishing status accurate.
             </p>
           </div>
@@ -5259,7 +5259,7 @@ function EventsContentSection() {
             <button
               type="button"
               onClick={() => setIsPreviewOpen((current) => !current)}
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
             >
               <Search className="size-4" />
               Preview
@@ -5268,7 +5268,7 @@ function EventsContentSection() {
               type="button"
               onClick={saveEvent}
               disabled={isSaving}
-              className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:opacity-60"
+              className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 disabled:opacity-60 active:scale-[0.98]"
             >
               <Save className="size-4" />
               {isSaving ? "Saving..." : "Save"}
@@ -5277,23 +5277,23 @@ function EventsContentSection() {
         </div>
 
         {isPreviewOpen && (
-          <div className="mt-6 overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2]">
+          <div className="mt-6 overflow-hidden rounded-lg border border-[#272730] bg-[#181820]">
             <img
               src={draft.image}
               alt=""
               className={`aspect-[16/8] w-full object-cover ${draft.position}`}
             />
             <div className="p-5">
-              <div className="text-xs uppercase tracking-[0.2em] text-[#b98722]">
+              <div className="text-xs uppercase tracking-[0.2em] text-amber-400">
                 Event coverage
               </div>
-              <h3 className="mt-3 font-display text-3xl font-light">
+              <h3 className="mt-3 font-display text-3xl font-light text-zinc-100">
                 {draft.name || "Untitled event"}
               </h3>
-              <div className="mt-3 text-sm text-[#746c61]">
+              <div className="mt-3 text-sm text-zinc-400">
                 {draft.dateLabel} / {draft.location}
               </div>
-              <p className="mt-3 text-sm leading-6 text-[#746c61]">{draft.desc}</p>
+              <p className="mt-3 text-sm leading-6 text-zinc-400">{draft.desc}</p>
             </div>
           </div>
         )}
@@ -5350,7 +5350,7 @@ function EventsContentSection() {
 
         <HomeSubsection title="Images & Media">
           <div className="grid gap-5 md:grid-cols-[0.55fr_1fr]">
-            <div className="overflow-hidden rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-3">
+            <div className="overflow-hidden rounded-lg border border-[#272730] bg-[#181820] p-3">
               <img
                 src={draft.image}
                 alt=""
@@ -5374,7 +5374,7 @@ function EventsContentSection() {
         </HomeSubsection>
 
         <HomeSubsection title="Registration Details">
-          <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 text-sm leading-6 text-[#746c61]">
+          <div className="rounded-lg border border-[#272730] bg-[#181820] p-4 text-sm leading-6 text-zinc-400">
             The public Events page currently uses the fixed View Gallery action and does not store a
             registration link.
           </div>
@@ -5408,14 +5408,14 @@ function EventsContentSection() {
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "published"))}
-              className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300"
             >
               Publish
             </button>
             <button
               type="button"
               onClick={() => updateDraft((next) => void (next.status = "draft"))}
-              className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+              className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
             >
               Unpublish
             </button>
@@ -5585,10 +5585,10 @@ function ContactMessagesSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-56 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="h-7 w-56 animate-pulse rounded bg-[#272730]" />
         <div className="mt-6 grid gap-5 xl:grid-cols-[0.45fr_1fr]">
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
       </AdminCard>
     );
@@ -5598,8 +5598,8 @@ function ContactMessagesSection() {
     <div className="grid gap-6 xl:grid-cols-[0.45fr_1fr]">
       <AdminCard>
         <div>
-          <h2 className="font-display text-3xl font-light">Contact Messages</h2>
-          <p className="mt-2 text-sm text-[#746c61]">
+          <h2 className="font-display text-3xl font-light text-zinc-100">Contact Messages</h2>
+          <p className="mt-2 text-sm text-zinc-400">
             Review submitted contact messages without editing the original content.
           </p>
         </div>
@@ -5622,19 +5622,19 @@ function ContactMessagesSection() {
           </div>
 
           {messageText && (
-            <div className="rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
               {messageText}
             </div>
           )}
           {error && (
-            <div className="rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+            <div className="rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
               {error}
             </div>
           )}
 
           <div className="space-y-3">
             {filteredMessages.length === 0 ? (
-              <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+              <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
                 No contact messages match this view.
               </div>
             ) : (
@@ -5643,22 +5643,22 @@ function ContactMessagesSection() {
                   key={message.id}
                   type="button"
                   onClick={() => setSelectedId(message.id)}
-                  className={`block w-full rounded-lg border p-4 text-left transition ${
+                  className={`block w-full rounded-lg border p-4 text-left transition-all ${
                     selectedMessage?.id === message.id
-                      ? "border-[#d7a33b] bg-[#fff8e7]"
-                      : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                      ? "border-amber-500/60 bg-amber-500/10"
+                      : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-bold text-[#211d16]">
+                      <div className="truncate text-sm font-bold text-zinc-100">
                         {message.name}
                       </div>
-                      <div className="mt-1 truncate text-xs text-[#746c61]">{message.subject}</div>
+                      <div className="mt-1 truncate text-xs text-zinc-400">{message.subject}</div>
                     </div>
                     <MessageStatusPill status={message.status} />
                   </div>
-                  <div className="mt-3 text-xs uppercase tracking-widest text-[#8c8479]">
+                  <div className="mt-3 text-xs uppercase tracking-widest text-zinc-400">
                     {formatAdminDateTime(message.createdAt)}
                   </div>
                 </button>
@@ -5673,8 +5673,8 @@ function ContactMessagesSection() {
           <>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="font-display text-3xl font-light">Message Details</h2>
-                <p className="mt-2 text-sm text-[#746c61]">
+                <h2 className="font-display text-3xl font-light text-zinc-100">Message Details</h2>
+                <p className="mt-2 text-sm text-zinc-400">
                   Submitted {formatAdminDateTime(selectedMessage.createdAt)}
                 </p>
               </div>
@@ -5696,35 +5696,35 @@ function ContactMessagesSection() {
                 <button
                   type="button"
                   onClick={() => updateMessageStatus(selectedMessage.id, "read")}
-                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
                 >
                   Mark Read
                 </button>
                 <button
                   type="button"
                   onClick={() => updateMessageStatus(selectedMessage.id, "new")}
-                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
                 >
                   Mark Unread
                 </button>
                 <button
                   type="button"
                   onClick={() => updateMessageStatus(selectedMessage.id, "resolved")}
-                  className="rounded-md border border-[#d8c79d] bg-[#fbf3dd] px-3 py-2 text-xs font-bold text-[#856322]"
+                  className="rounded-md border border-emerald-500/30 bg-emerald-950/40 px-3 py-2 text-xs font-bold text-emerald-300"
                 >
                   Mark Resolved
                 </button>
                 <button
                   type="button"
                   onClick={() => updateMessageStatus(selectedMessage.id, "archived")}
-                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
                 >
                   Archive
                 </button>
                 <button
                   type="button"
                   onClick={() => deleteMessage(selectedMessage)}
-                  className="rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  className="rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-900/50 hover:border-red-500/60"
                 >
                   Delete
                 </button>
@@ -5733,8 +5733,8 @@ function ContactMessagesSection() {
           </>
         ) : (
           <div>
-            <h2 className="font-display text-3xl font-light">No message selected</h2>
-            <p className="mt-3 text-sm leading-6 text-[#746c61]">
+            <h2 className="font-display text-3xl font-light text-zinc-100">No message selected</h2>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
               Contact form submissions will appear here after visitors send messages.
             </p>
           </div>
@@ -5936,10 +5936,10 @@ function BookingInquiriesSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-56 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="h-7 w-56 animate-pulse rounded bg-[#272730]" />
         <div className="mt-6 grid gap-5 xl:grid-cols-[0.45fr_1fr]">
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
-          <div className="h-80 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
+          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
         </div>
       </AdminCard>
     );
@@ -5949,8 +5949,8 @@ function BookingInquiriesSection() {
     <div className="grid gap-6 xl:grid-cols-[0.45fr_1fr]">
       <AdminCard>
         <div>
-          <h2 className="font-display text-3xl font-light">Booking Inquiries</h2>
-          <p className="mt-2 text-sm text-[#746c61]">
+          <h2 className="font-display text-3xl font-light text-zinc-100">Booking Inquiries</h2>
+          <p className="mt-2 text-sm text-zinc-400">
             Review submitted booking inquiries without editing the original customer details.
           </p>
         </div>
@@ -5973,19 +5973,19 @@ function BookingInquiriesSection() {
           </div>
 
           {messageText && (
-            <div className="rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
               {messageText}
             </div>
           )}
           {error && (
-            <div className="rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+            <div className="rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
               {error}
             </div>
           )}
 
           <div className="space-y-3">
             {filteredInquiries.length === 0 ? (
-              <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5 text-sm text-[#746c61]">
+              <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
                 No booking inquiries match this view.
               </div>
             ) : (
@@ -5994,24 +5994,24 @@ function BookingInquiriesSection() {
                   key={inquiry.id}
                   type="button"
                   onClick={() => setSelectedId(inquiry.id)}
-                  className={`block w-full rounded-lg border p-4 text-left transition ${
+                  className={`block w-full rounded-lg border p-4 text-left transition-all ${
                     selectedInquiry?.id === inquiry.id
-                      ? "border-[#d7a33b] bg-[#fff8e7]"
-                      : "border-[#e4ded3] bg-[#faf8f2] hover:border-[#d7a33b]"
+                      ? "border-amber-500/60 bg-amber-500/10"
+                      : "border-[#272730] bg-[#181820] hover:border-amber-500/40"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-bold text-[#211d16]">
+                      <div className="truncate text-sm font-bold text-zinc-100">
                         {inquiry.name}
                       </div>
-                      <div className="mt-1 truncate text-xs text-[#746c61]">
+                      <div className="mt-1 truncate text-xs text-zinc-400">
                         {inquiry.service || "Service not provided"}
                       </div>
                     </div>
                     <BookingStatusPill status={inquiry.status} />
                   </div>
-                  <div className="mt-3 text-xs uppercase tracking-widest text-[#8c8479]">
+                  <div className="mt-3 text-xs uppercase tracking-widest text-zinc-400">
                     {formatAdminDateTime(inquiry.createdAt)}
                   </div>
                 </button>
@@ -6026,8 +6026,8 @@ function BookingInquiriesSection() {
           <>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="font-display text-3xl font-light">Inquiry Details</h2>
-                <p className="mt-2 text-sm text-[#746c61]">
+                <h2 className="font-display text-3xl font-light text-zinc-100">Inquiry Details</h2>
+                <p className="mt-2 text-sm text-zinc-400">
                   Submitted {formatAdminDateTime(selectedInquiry.createdAt)}
                 </p>
               </div>
@@ -6079,7 +6079,7 @@ function BookingInquiriesSection() {
                           `Inquiry marked ${bookingStatusLabels[status]}.`,
                         )
                       }
-                      className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                      className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40 hover:text-amber-300"
                     >
                       {bookingStatusLabels[status]}
                     </button>
@@ -6093,27 +6093,27 @@ function BookingInquiriesSection() {
                       "Booking inquiry archived.",
                     )
                   }
-                  className="rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+                  className="rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-amber-500/40"
                 >
                   Archive
                 </button>
                 <button
                   type="button"
                   onClick={() => deleteInquiry(selectedInquiry)}
-                  className="rounded-md border border-[#e8d4cd] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+                  className="rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-900/50 hover:border-red-500/60"
                 >
                   Delete
                 </button>
               </div>
               <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">
                   Internal Admin Notes
                 </span>
                 <textarea
                   value={notesDraft}
                   rows={5}
                   onChange={(event) => setNotesDraft(event.target.value)}
-                  className="w-full resize-none rounded-lg border border-[#ddd6c8] bg-[#faf8f2] px-4 py-3 text-sm text-[#2d271f] outline-none transition focus:border-[#d7a33b]"
+                  className="w-full resize-none rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-amber-500/70"
                 />
               </label>
               <button
@@ -6125,7 +6125,7 @@ function BookingInquiriesSection() {
                     "Internal notes saved.",
                   )
                 }
-                className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d]"
+                className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 active:scale-[0.98]"
               >
                 <Save className="size-4" />
                 Save Notes
@@ -6134,8 +6134,8 @@ function BookingInquiriesSection() {
           </>
         ) : (
           <div>
-            <h2 className="font-display text-3xl font-light">No inquiry selected</h2>
-            <p className="mt-2 text-sm text-[#746c61]">
+            <h2 className="font-display text-3xl font-light text-zinc-100">No inquiry selected</h2>
+            <p className="mt-2 text-sm text-zinc-400">
               Booking form submissions will appear here after customers send inquiries.
             </p>
           </div>
@@ -6148,12 +6148,12 @@ function BookingInquiriesSection() {
 function BookingStatusPill({ status }: { status: BookingInquiryStatus }) {
   const className =
     status === "new"
-      ? "border-[#d8c79d] bg-[#fbf3dd] text-[#9a6d16]"
+      ? "border-amber-500/30 bg-amber-500/10 text-amber-300 shadow-[0_0_10px_rgba(212,175,55,0.15)]"
       : status === "confirmed" || status === "completed"
-        ? "border-[#c9ddc8] bg-[#f3fbef] text-[#4f7a35]"
+        ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-300"
         : status === "cancelled" || status === "archived"
-          ? "border-[#e8d4cd] bg-[#fff7f4] text-[#9b4b35]"
-          : "border-[#d9d1c4] bg-[#f7f4ec] text-[#746c61]";
+          ? "border-red-500/30 bg-red-950/40 text-red-300"
+          : "border-zinc-700 bg-zinc-800/60 text-zinc-300";
 
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${className}`}>
@@ -6175,12 +6175,12 @@ function formatInquiryDate(value: string) {
 function MessageStatusPill({ status }: { status: ContactMessageValue["status"] }) {
   const className =
     status === "new"
-      ? "border-[#d8c79d] bg-[#fbf3dd] text-[#9a6d16]"
+      ? "border-amber-500/30 bg-amber-500/10 text-amber-300 shadow-[0_0_10px_rgba(212,175,55,0.15)]"
       : status === "read"
-        ? "border-[#d9d1c4] bg-[#f7f4ec] text-[#746c61]"
+        ? "border-zinc-700 bg-zinc-800/60 text-zinc-300"
         : status === "resolved"
-          ? "border-[#c9ddc8] bg-[#f3fbef] text-[#4f7a35]"
-          : "border-[#e8d4cd] bg-[#fff7f4] text-[#9b4b35]";
+          ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-300"
+          : "border-red-500/30 bg-red-950/40 text-red-300";
 
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${className}`}>
@@ -6200,10 +6200,10 @@ function ReadOnlyField({
 }) {
   return (
     <div className={multiline ? "md:col-span-2" : ""}>
-      <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8b7d68]">
+      <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">
         {label}
       </div>
-      <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] px-4 py-3 text-sm leading-6 text-[#2d271f]">
+      <div className="rounded-lg border border-[#272730] bg-[#181820] px-4 py-3 text-sm leading-6 text-zinc-100">
         {value}
       </div>
     </div>
@@ -6359,10 +6359,10 @@ function SettingsSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-56 animate-pulse rounded bg-[#eee7dc]" />
+        <div className="h-7 w-56 animate-pulse rounded bg-[#272730]" />
         <div className="mt-6 grid gap-5 md:grid-cols-2">
-          <div className="h-40 animate-pulse rounded-lg bg-[#f4eee4]" />
-          <div className="h-40 animate-pulse rounded-lg bg-[#f4eee4]" />
+          <div className="h-40 animate-pulse rounded-lg bg-[#181820]" />
+          <div className="h-40 animate-pulse rounded-lg bg-[#181820]" />
         </div>
       </AdminCard>
     );
@@ -6371,8 +6371,8 @@ function SettingsSection() {
   if (!settings) {
     return (
       <AdminCard>
-        <h2 className="font-display text-3xl font-light">Settings unavailable</h2>
-        <p className="mt-3 text-sm leading-6 text-[#746c61]">
+        <h2 className="font-display text-3xl font-light text-zinc-100">Settings unavailable</h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">
           {error || "Unable to load settings."}
         </p>
       </AdminCard>
@@ -6389,12 +6389,12 @@ function SettingsSection() {
       />
 
       {message && (
-        <div className="mt-6 rounded-lg border border-[#d8c79d] bg-[#fbf3dd] px-4 py-3 text-sm font-semibold text-[#856322]">
+        <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
           {message}
         </div>
       )}
       {error && (
-        <div className="mt-6 rounded-lg border border-[#e8d4cd] bg-[#fff7f4] px-4 py-3 text-sm font-semibold text-[#9b4b35]">
+        <div className="mt-6 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
           {error}
         </div>
       )}
@@ -6404,7 +6404,7 @@ function SettingsSection() {
           type="button"
           onClick={saveSettings}
           disabled={isSaving}
-          className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]"
         >
           <Save className="size-4" />
           {isSaving ? "Saving..." : "Save Settings"}
@@ -6587,19 +6587,19 @@ function SettingsMediaField({
   onReset: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4">
+    <div className="rounded-lg border border-[#272730] bg-[#181820] p-4">
       <HomeMediaSelect label={label} value={value} options={options} onChange={onChange} />
-      <div className="mt-4 overflow-hidden rounded-lg border border-[#ddd6c8] bg-white p-4">
+      <div className="mt-4 overflow-hidden rounded-lg border border-[#272730] bg-[#121217] p-4">
         {value ? (
           <img src={value} alt={label} className="h-28 w-full object-contain" />
         ) : (
-          <div className="grid h-28 place-items-center text-sm text-[#746c61]">
+          <div className="grid h-28 place-items-center text-sm text-zinc-400">
             No media selected
           </div>
         )}
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d]">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300">
           Upload Image
           <input
             type="file"
@@ -6615,7 +6615,7 @@ function SettingsMediaField({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg border border-[#ddd6c8] bg-white px-4 py-3 text-sm font-bold text-[#6f665c]"
+          className="rounded-lg border border-[#272730] bg-[#121217] px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
         >
           Reset Media
         </button>
@@ -6779,14 +6779,14 @@ function ContentSnapshot({ snapshots }: { snapshots: DashboardSnapshot[] }) {
   }
 
   return (
-    <article className="overflow-hidden rounded-lg border border-[#ddd6c8] bg-white shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]">
-      <div className="border-b border-[#e4ded3] p-6">
-        <h2 className="font-display text-2xl font-light">Content Snapshot</h2>
-        <p className="mt-2 text-sm text-[#746c61]">Live CMS section status from the database.</p>
+    <article className="overflow-hidden rounded-lg border border-[#272730] bg-[#121217] shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)]">
+      <div className="border-b border-[#272730] p-6">
+        <h2 className="font-display text-2xl font-light text-zinc-100">Content Snapshot</h2>
+        <p className="mt-2 text-sm text-zinc-400">Live CMS section status from the database.</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="bg-[#f4f0e7] text-xs uppercase tracking-[0.2em] text-[#82786b]">
+          <thead className="bg-[#181820] text-xs uppercase tracking-[0.2em] text-amber-400">
             <tr>
               <th className="px-5 py-4 font-bold">Section</th>
               <th className="px-5 py-4 font-bold">Status</th>
@@ -6795,21 +6795,21 @@ function ContentSnapshot({ snapshots }: { snapshots: DashboardSnapshot[] }) {
               <th className="px-5 py-4 font-bold">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#e7e0d4] bg-white">
+          <tbody className="divide-y divide-[#272730] bg-[#121217]">
             {snapshots.map((snapshot) => (
-              <tr key={snapshot.section}>
-                <td className="px-5 py-4 font-semibold text-[#211d16]">{snapshot.section}</td>
-                <td className="px-5 py-4 text-[#746c61]">
+              <tr key={snapshot.section} className="hover:bg-white/[0.02] transition-colors">
+                <td className="px-5 py-4 font-semibold text-zinc-100">{snapshot.section}</td>
+                <td className="px-5 py-4 text-zinc-400">
                   <StatusPill status={snapshot.status} />
                 </td>
-                <td className="px-5 py-4 text-[#746c61]">{snapshot.itemCount}</td>
-                <td className="px-5 py-4 text-[#746c61]">
+                <td className="px-5 py-4 text-zinc-400">{snapshot.itemCount}</td>
+                <td className="px-5 py-4 text-zinc-400">
                   {formatDashboardDate(snapshot.lastUpdated)}
                 </td>
                 <td className="px-5 py-4">
                   <Link
                     href={snapshot.href}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c] transition hover:border-[#d7a33b] hover:text-[#17130d]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/50 hover:text-amber-300"
                   >
                     <Edit3 className="size-3.5" />
                     Edit
@@ -6827,12 +6827,12 @@ function ContentSnapshot({ snapshots }: { snapshots: DashboardSnapshot[] }) {
 function StatusPill({ status }: { status: DashboardSnapshot["status"] }) {
   const className =
     status === "Published"
-      ? "border-[#d8c79d] bg-[#fbf3dd] text-[#9a6d16]"
+      ? "border-amber-500/30 bg-amber-500/10 text-amber-300 shadow-[0_0_10px_rgba(212,175,55,0.15)]"
       : status === "Draft"
-        ? "border-[#d9d1c4] bg-[#f7f4ec] text-[#746c61]"
+        ? "border-zinc-700 bg-zinc-800/60 text-zinc-300"
         : status === "Archived"
-          ? "border-[#e8d4cd] bg-[#fff7f4] text-[#9b4b35]"
-          : "border-[#d8c79d] bg-[#fff9eb] text-[#856322]";
+          ? "border-red-500/30 bg-red-950/40 text-red-300"
+          : "border-amber-500/30 bg-amber-500/10 text-amber-300";
 
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${className}`}>
@@ -6853,31 +6853,31 @@ function formatDashboardDate(value: string | null) {
 
 function QueueCard({ pendingWork }: { pendingWork: DashboardPendingWork[] }) {
   return (
-    <article className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]">
-      <h2 className="font-display text-2xl font-light">Today's Queue</h2>
-      <p className="mt-2 text-sm text-[#746c61]">Pending CMS work based on database status.</p>
+    <article className="rounded-lg border border-[#272730] bg-[#121217] p-6 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)]">
+      <h2 className="font-display text-2xl font-light text-zinc-100">Today's Queue</h2>
+      <p className="mt-2 text-sm text-zinc-400">Pending CMS work based on database status.</p>
       {pendingWork.length > 0 ? (
         <div className="mt-6 space-y-4">
           {pendingWork.map((item, index) => (
             <Link
               key={item.section}
               href={item.href}
-              className="flex items-center gap-4 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-4 transition hover:border-[#d7a33b] hover:bg-[#fffaf0]"
+              className="flex items-center gap-4 rounded-lg border border-[#272730] bg-[#181820] p-4 transition hover:border-amber-500/50 hover:bg-[#1f1f2b]"
             >
-              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#17130d] text-xs font-bold text-[#efbc4a]">
+              <div className="grid size-8 shrink-0 place-items-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-xs font-bold text-amber-400">
                 {index + 1}
               </div>
               <div>
-                <div className="text-sm font-semibold text-[#3b352c]">{item.section}</div>
-                <div className="mt-1 text-xs text-[#746c61]">{formatPendingSummary(item)}</div>
+                <div className="text-sm font-semibold text-zinc-200">{item.section}</div>
+                <div className="mt-1 text-xs text-zinc-400">{formatPendingSummary(item)}</div>
               </div>
             </Link>
           ))}
         </div>
       ) : (
-        <div className="mt-6 rounded-lg border border-[#e4ded3] bg-[#faf8f2] p-5">
-          <div className="text-sm font-semibold text-[#3b352c]">No pending CMS work</div>
-          <p className="mt-2 text-sm leading-6 text-[#746c61]">
+        <div className="mt-6 rounded-lg border border-[#272730] bg-[#181820] p-5">
+          <div className="text-sm font-semibold text-zinc-200">No pending CMS work</div>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">
             Draft and archived records will appear here when they exist.
           </p>
         </div>
@@ -6902,7 +6902,7 @@ function formatPendingSummary(item: DashboardPendingWork) {
 
 function AdminCard({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-[#ddd6c8] bg-white p-6 shadow-[0_12px_32px_-24px_rgba(23,19,13,0.42)]">
+    <section className="rounded-lg border border-[#272730] bg-[#121217] p-6 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.8)] text-zinc-100">
       {children}
     </section>
   );
@@ -6922,12 +6922,12 @@ function SectionHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h2 className="font-display text-3xl font-light">{title}</h2>
-        <p className="mt-2 text-sm text-[#746c61]">{description}</p>
+        <h2 className="font-display text-3xl font-light text-zinc-100">{title}</h2>
+        <p className="mt-2 text-sm text-zinc-400">{description}</p>
       </div>
       <button
         type="button"
-        className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#efbc4a] px-4 py-3 text-sm font-bold text-[#17130d] shadow-[0_14px_30px_-22px_rgba(23,19,13,0.7)]"
+        className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 active:scale-[0.98]"
       >
         <Icon className="size-4" />
         {action}
@@ -6941,14 +6941,14 @@ function RowActions({ compact = false }: { compact?: boolean }) {
     <div className={`mt-5 flex gap-2 ${compact ? "mt-0" : ""}`}>
       <button
         type="button"
-        className="inline-flex items-center gap-1.5 rounded-md border border-[#ddd6c8] bg-white px-3 py-2 text-xs font-bold text-[#6f665c]"
+        className="inline-flex items-center gap-1.5 rounded-md border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/40 hover:text-amber-300"
       >
         <Edit3 className="size-3.5" />
         Edit
       </button>
       <button
         type="button"
-        className="inline-flex items-center gap-1.5 rounded-md border border-[#edd8d1] bg-[#fff7f4] px-3 py-2 text-xs font-bold text-[#9b4b35]"
+        className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-400 transition hover:bg-red-900/50 hover:border-red-500/60"
       >
         <Trash2 className="size-3.5" />
         Delete
