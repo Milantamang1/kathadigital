@@ -97,9 +97,13 @@ export async function getPublishedServices() {
   }
 
   if (records.length === 0) {
-    const totalRecords = await prisma.service.count();
-    if (totalRecords > 0) {
-      return [];
+    try {
+      const totalRecords = await prisma.service.count();
+      if (totalRecords > 0) {
+        return [];
+      }
+    } catch (error) {
+      console.error("Unable to count services from database. Using fallback services.", error);
     }
 
     return fallbackPublishedServices();
