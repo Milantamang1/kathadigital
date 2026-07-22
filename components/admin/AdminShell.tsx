@@ -57,7 +57,7 @@ type SectionKey =
   | "Productions"
   | "News"
   | "Events"
-  | "Contact Messages"
+  | "Contact"
   | "Booking Inquiries"
   | "Settings";
 
@@ -70,7 +70,7 @@ const menuItems: { label: SectionKey; icon: typeof LayoutGrid }[] = [
   { label: "Productions", icon: Video },
   { label: "News", icon: Newspaper },
   { label: "Events", icon: CalendarDays },
-  { label: "Contact Messages", icon: Mail },
+  { label: "Contact", icon: Mail },
   { label: "Booking Inquiries", icon: Users },
   { label: "Settings", icon: Settings },
 ];
@@ -345,7 +345,7 @@ function AdminContent({ activeSection }: { activeSection: SectionKey }) {
   if (activeSection === "Productions") return <ProductionsContentSection />;
   if (activeSection === "News") return <NewsContentSection />;
   if (activeSection === "Events") return <EventsContentSection />;
-  if (activeSection === "Contact Messages") return <ContactMessagesSection />;
+  if (activeSection === "Contact") return <ContactCmsSection />;
   if (activeSection === "Booking Inquiries") return <BookingInquiriesSection />;
   return <SettingsSection />;
 }
@@ -6003,15 +6003,336 @@ type ContactMessagesResponse =
       error: { message: string };
     };
 
-function ContactMessagesSection() {
+function ContactCmsSection() {
+  return (
+    <div className="space-y-6">
+      <ContactContentEditor />
+      <ContactMessagesTable />
+    </div>
+  );
+}
+
+function ContactContentEditor() {
+  const [settings, setSettings] = useState<SiteSettingsValue | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/admin/settings");
+        const payload = (await response.json().catch(() => null)) as SettingsResponse | null;
+
+        if (!payload) {
+          throw new Error(
+            "Settings API returned a non-JSON response. Restart the dev server and try again.",
+          );
+        }
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.ok ? "Unable to load contact content." : payload.error.message);
+        }
+
+        if (!cancelled) setSettings(payload.data.settings);
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load contact content.");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    void loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function updateSetting(key: keyof SiteSettingsValue, value: string) {
+    setSettings((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  async function saveContactContent() {
+    if (!settings) return;
+    const emailError = validateContactEmail(settings.email);
+    if (emailError) {
+      setMessage("");
+      setError(emailError);
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        ok: boolean;
+        data?: { settings: SiteSettingsValue };
+        error?: { message: string };
+      } | null;
+
+      if (!payload) {
+        throw new Error(
+          "Settings API returned a non-JSON response. Restart the dev server and try again.",
+        );
+      }
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "Unable to save contact content.");
+      }
+
+      setSettings(payload.data.settings);
+      setMessage("Contact content saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save contact content.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AdminCard>
+        <div className="h-7 w-56 animate-pulse rounded bg-[#272730]" />
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="h-28 animate-pulse rounded-xl bg-[#181820]" />
+          <div className="h-28 animate-pulse rounded-xl bg-[#181820]" />
+          <div className="h-28 animate-pulse rounded-xl bg-[#181820]" />
+        </div>
+      </AdminCard>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <AdminCard>
+        <h2 className="font-display text-3xl font-light text-zinc-100">Contact unavailable</h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">
+          {error || "Unable to load contact content."}
+        </p>
+      </AdminCard>
+    );
+  }
+
+  const emailError = validateContactEmail(settings.email);
+
+  return (
+    <AdminCard>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="font-display text-3xl font-light text-zinc-100">Contact</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+            Manage the existing Contact page information, social links, and map using the current
+            site settings mapping.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={saveContactContent}
+          disabled={isSaving || Boolean(emailError)}
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 px-4 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:from-amber-400 hover:to-yellow-400 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]"
+        >
+          <Save className="size-4" />
+          {isSaving ? "Saving..." : "Save Contact"}
+        </button>
+      </div>
+
+      {message && (
+        <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="mt-6 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+        <ContactMetricCard label="Contact Cards" value="4" note="Office, Phone, WhatsApp, Email" />
+        <ContactMetricCard label="Social Links" value="3" note="Instagram, YouTube, Facebook" />
+      </div>
+
+      <div className="mt-8 space-y-4">
+        <ContactEditorPanel title="Contact Cards" defaultOpen>
+          <div className="grid gap-5 md:grid-cols-2">
+            <HomeInput
+              label="Office"
+              value={settings.office}
+              onChange={(value) => updateSetting("office", value)}
+            />
+            <HomeInput
+              label="Phone"
+              value={settings.phone}
+              onChange={(value) => updateSetting("phone", value)}
+            />
+            <HomeInput
+              label="WhatsApp"
+              value={settings.whatsapp}
+              onChange={(value) => updateSetting("whatsapp", value)}
+            />
+            <ContactEmailInput
+              label="Email"
+              value={settings.email}
+              onChange={(value) => updateSetting("email", value)}
+              error={emailError}
+            />
+          </div>
+        </ContactEditorPanel>
+
+        <ContactEditorPanel title="Social Links">
+          <div className="grid gap-5 md:grid-cols-3">
+            <HomeInput
+              label="Instagram URL"
+              value={settings.instagramUrl}
+              onChange={(value) => updateSetting("instagramUrl", value)}
+            />
+            <HomeInput
+              label="YouTube URL"
+              value={settings.youtubeUrl}
+              onChange={(value) => updateSetting("youtubeUrl", value)}
+            />
+            <HomeInput
+              label="Facebook URL"
+              value={settings.facebookUrl}
+              onChange={(value) => updateSetting("facebookUrl", value)}
+            />
+          </div>
+        </ContactEditorPanel>
+
+        <ContactEditorPanel title="Map">
+          <HomeTextarea
+            label="Map Embed URL"
+            value={settings.mapSrc}
+            onChange={(value) => updateSetting("mapSrc", value)}
+          />
+          <div className="overflow-hidden rounded-xl border border-[#272730] bg-[#0d0d11] shadow-[0_18px_60px_-36px_rgba(0,0,0,0.9)]">
+            <iframe
+              src={settings.mapSrc}
+              title="Katha Digital location map"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="h-64 w-full border-0 grayscale-[0.18]"
+              allowFullScreen
+            />
+          </div>
+        </ContactEditorPanel>
+
+      </div>
+    </AdminCard>
+  );
+}
+
+function ContactEmailInput({
+  error,
+  label,
+  onChange,
+  value,
+}: {
+  error: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">
+        {label}
+      </span>
+      <input
+        value={value}
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? "contact-email-error" : undefined}
+        onChange={(event) => onChange(event.target.value)}
+        className={`w-full rounded-lg border bg-[#181820] px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition ${
+          error
+            ? "border-red-500/60 focus:border-red-400"
+            : "border-[#272730] focus:border-amber-500/70"
+        }`}
+      />
+      {error ? (
+        <span id="contact-email-error" className="mt-2 block text-xs font-semibold text-red-300">
+          {error}
+        </span>
+      ) : (
+        <span className="mt-2 block text-xs leading-5 text-zinc-400">
+          Uses the existing public Contact email field.
+        </span>
+      )}
+    </label>
+  );
+}
+
+function validateContactEmail(value: string) {
+  const email = value.trim();
+  if (!email) return "Email is required.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address.";
+  return "";
+}
+
+function ContactMetricCard({ label, note, value }: { label: string; note: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#272730] bg-[linear-gradient(145deg,rgba(255,255,255,0.045),transparent_42%),#181820] p-5 shadow-[0_18px_60px_-42px_rgba(0,0,0,0.9)]">
+      <div className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">{label}</div>
+      <div className="mt-3 font-display text-4xl font-light text-zinc-100">{value}</div>
+      <p className="mt-2 text-sm leading-6 text-zinc-400">{note}</p>
+    </div>
+  );
+}
+
+function ContactEditorPanel({
+  children,
+  defaultOpen = false,
+  title,
+}: {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  title: string;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="group rounded-xl border border-[#272730] bg-[#181820]/80 shadow-[0_18px_60px_-44px_rgba(0,0,0,0.9)]"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
+        <span className="font-display text-2xl font-light text-zinc-100">{title}</span>
+        <ChevronDown className="size-5 text-amber-300 transition-transform duration-300 group-open:rotate-180" />
+      </summary>
+      <div className="border-t border-[#272730] p-5">{children}</div>
+    </details>
+  );
+}
+
+function ContactMessagesTable() {
   const [messages, setMessages] = useState<ContactMessageValue[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [sortBy, setSortBy] = useState<"createdAt" | "name" | "status">("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [messageText, setMessageText] = useState("");
   const [error, setError] = useState("");
+  const pageSize = 8;
 
   const selectedMessage =
     messages.find((message) => message.id === selectedId) ?? messages[0] ?? null;
@@ -6032,11 +6353,26 @@ function ContactMessagesSection() {
         return matchesSearch && matchesFilter;
       })
       .sort((a, b) => {
-        const left = new Date(a.createdAt).getTime();
-        const right = new Date(b.createdAt).getTime();
-        return sortOrder === "newest" ? right - left : left - right;
+        const direction = sortOrder === "asc" ? 1 : -1;
+        if (sortBy === "createdAt") {
+          return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * direction;
+        }
+
+        return a[sortBy].localeCompare(b[sortBy]) * direction;
       });
-  }, [filter, messages, search, sortOrder]);
+  }, [filter, messages, search, sortBy, sortOrder]);
+
+  const unreadCount = messages.filter((message) => message.status === "new").length;
+  const pageCount = Math.max(1, Math.ceil(filteredMessages.length / pageSize));
+  const paginatedMessages = filteredMessages.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, search, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   async function loadMessages() {
     setIsLoading(true);
@@ -6150,28 +6486,57 @@ function ContactMessagesSection() {
   if (isLoading) {
     return (
       <AdminCard>
-        <div className="h-7 w-56 animate-pulse rounded bg-[#272730]" />
-        <div className="mt-6 grid gap-5 xl:grid-cols-[0.45fr_1fr]">
-          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
-          <div className="h-80 animate-pulse rounded-lg bg-[#181820]" />
+        <div className="flex items-center justify-between">
+          <div className="h-7 w-56 animate-pulse rounded bg-[#272730]" />
+          <div className="h-10 w-32 animate-pulse rounded-lg bg-[#181820]" />
+        </div>
+        <div className="mt-6 space-y-3">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="h-16 animate-pulse rounded-xl bg-[#181820]" />
+          ))}
         </div>
       </AdminCard>
     );
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.45fr_1fr]">
-      <AdminCard>
+    <AdminCard>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h2 className="font-display text-3xl font-light text-zinc-100">Contact Messages</h2>
-          <p className="mt-2 text-sm text-zinc-400">
-            Review submitted contact messages without editing the original content.
+          <h2 className="font-display text-3xl font-light text-zinc-100">Contact Messages Table</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+            Review submitted contact-form messages using the existing stored form data.
           </p>
         </div>
+        <div className="grid grid-cols-2 gap-3 sm:flex">
+          <ContactMetricCard label="Total" value={String(messages.length)} note="Submissions" />
+          <ContactMetricCard label="Unread" value={String(unreadCount)} note="New messages" />
+        </div>
+      </div>
 
-        <HomeSubsection title="Message List">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <HomeInput label="Search" value={search} onChange={setSearch} />
+      {messageText && (
+        <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
+          {messageText}
+        </div>
+      )}
+      {error && (
+        <div className="mt-6 rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="min-w-0 rounded-xl border border-[#272730] bg-[#0f0f14] shadow-[0_20px_70px_-48px_rgba(0,0,0,0.95)]">
+          <div className="grid gap-3 border-b border-[#272730] p-4 md:grid-cols-[minmax(0,1.4fr)_0.7fr_0.7fr_0.65fr]">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-amber-300/70" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search messages"
+                className="w-full rounded-lg border border-[#272730] bg-[#181820] py-3 pl-10 pr-4 text-sm text-zinc-100 outline-none transition focus:border-amber-500/70"
+              />
+            </label>
             <HomeSelect
               label="Filter"
               value={filter}
@@ -6179,31 +6544,84 @@ function ContactMessagesSection() {
               onChange={setFilter}
             />
             <HomeSelect
-              label="Sort"
+              label="Sort By"
+              value={sortBy}
+              options={["createdAt", "name", "status"]}
+              onChange={(value) => setSortBy(value as "createdAt" | "name" | "status")}
+            />
+            <HomeSelect
+              label="Order"
               value={sortOrder}
-              options={["newest", "oldest"]}
-              onChange={(value) => setSortOrder(value as "newest" | "oldest")}
+              options={["desc", "asc"]}
+              onChange={(value) => setSortOrder(value as "asc" | "desc")}
             />
           </div>
 
-          {messageText && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
-              {messageText}
-            </div>
-          )}
-          {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-300">
-              {error}
-            </div>
-          )}
+          <div className="hidden overflow-x-auto lg:block">
+            <table className="w-full min-w-[860px] text-left text-sm">
+              <thead className="bg-[#15151c] text-xs uppercase tracking-[0.18em] text-amber-300/75">
+                <tr>
+                  <th className="px-5 py-4 font-bold">Status</th>
+                  <th className="px-5 py-4 font-bold">Sender</th>
+                  <th className="px-5 py-4 font-bold">Subject</th>
+                  <th className="px-5 py-4 font-bold">Message Preview</th>
+                  <th className="px-5 py-4 font-bold">Received</th>
+                  <th className="px-5 py-4 font-bold">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#272730]">
+                {paginatedMessages.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm text-zinc-400">
+                      No contact messages match this view.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedMessages.map((message) => (
+                    <tr
+                      key={message.id}
+                      className={`transition hover:bg-amber-500/[0.045] ${
+                        selectedMessage?.id === message.id ? "bg-amber-500/[0.07]" : ""
+                      }`}
+                    >
+                      <td className="px-5 py-4">
+                        <MessageStatusPill status={message.status} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-zinc-100">{message.name}</div>
+                        <div className="mt-1 text-xs text-zinc-500">{message.email}</div>
+                      </td>
+                      <td className="px-5 py-4 text-zinc-300">
+                        {message.subject || "Not provided"}
+                      </td>
+                      <td className="px-5 py-4 text-zinc-400">{messagePreview(message.message)}</td>
+                      <td className="px-5 py-4 text-xs uppercase tracking-widest text-zinc-500">
+                        {formatAdminDateTime(message.createdAt)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(message.id)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/50 hover:text-amber-300"
+                        >
+                          <Eye className="size-3.5" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 p-4 lg:hidden">
             {filteredMessages.length === 0 ? (
               <div className="rounded-lg border border-[#272730] bg-[#181820] p-5 text-sm text-zinc-400">
                 No contact messages match this view.
               </div>
             ) : (
-              filteredMessages.map((message) => (
+              paginatedMessages.map((message) => (
                 <button
                   key={message.id}
                   type="button"
@@ -6223,30 +6641,64 @@ function ContactMessagesSection() {
                     </div>
                     <MessageStatusPill status={message.status} />
                   </div>
-                  <div className="mt-3 text-xs uppercase tracking-widest text-zinc-400">
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-400">
+                    {messagePreview(message.message, 120)}
+                  </p>
+                  <div className="mt-3 text-xs uppercase tracking-widest text-zinc-500">
                     {formatAdminDateTime(message.createdAt)}
                   </div>
                 </button>
               ))
             )}
           </div>
-        </HomeSubsection>
-      </AdminCard>
 
-      <AdminCard>
-        {selectedMessage ? (
-          <>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="font-display text-3xl font-light text-zinc-100">Message Details</h2>
-                <p className="mt-2 text-sm text-zinc-400">
-                  Submitted {formatAdminDateTime(selectedMessage.createdAt)}
-                </p>
-              </div>
-              <MessageStatusPill status={selectedMessage.status} />
+          <div className="flex flex-col gap-3 border-t border-[#272730] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-zinc-400">
+              Showing {paginatedMessages.length === 0 ? 0 : (page - 1) * pageSize + 1}-
+              {Math.min(page * pageSize, filteredMessages.length)} of {filteredMessages.length}
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page <= 1}
+                className="inline-flex items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/50 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft className="size-4" />
+                Previous
+              </button>
+              <span className="rounded-lg border border-[#272730] bg-[#121217] px-3 py-2 text-xs font-bold text-amber-300">
+                {page} / {pageCount}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                disabled={page >= pageCount}
+                className="inline-flex items-center gap-2 rounded-lg border border-[#272730] bg-[#181820] px-3 py-2 text-xs font-bold text-zinc-300 transition hover:border-amber-500/50 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
 
-            <HomeSubsection title="Message Details">
+        <aside className="rounded-xl border border-[#272730] bg-[#0f0f14] p-5 shadow-[0_20px_70px_-48px_rgba(0,0,0,0.95)]">
+          {selectedMessage ? (
+            <>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-display text-2xl font-light text-zinc-100">
+                    Message Details
+                  </h3>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    Received {formatAdminDateTime(selectedMessage.createdAt)}
+                  </p>
+                </div>
+                <MessageStatusPill status={selectedMessage.status} />
+              </div>
+
+              <div className="mt-6 space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <ReadOnlyField label="Sender" value={selectedMessage.name} />
                 <ReadOnlyField label="Email" value={selectedMessage.email} />
@@ -6254,10 +6706,13 @@ function ContactMessagesSection() {
                 <ReadOnlyField label="Subject" value={selectedMessage.subject || "Not provided"} />
               </div>
               <ReadOnlyField label="Message" value={selectedMessage.message} multiline />
-            </HomeSubsection>
+              </div>
 
-            <HomeSubsection title="Status & Actions">
-              <div className="flex flex-wrap gap-2">
+              <div className="mt-6 border-t border-[#272730] pt-5">
+                <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-amber-400/80">
+                  Status & Actions
+                </div>
+                <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => updateMessageStatus(selectedMessage.id, "read")}
@@ -6293,20 +6748,26 @@ function ContactMessagesSection() {
                 >
                   Delete
                 </button>
+                </div>
               </div>
-            </HomeSubsection>
-          </>
-        ) : (
-          <div>
-            <h2 className="font-display text-3xl font-light text-zinc-100">No message selected</h2>
+            </>
+          ) : (
+            <div>
+              <h3 className="font-display text-2xl font-light text-zinc-100">No message selected</h3>
             <p className="mt-3 text-sm leading-6 text-zinc-400">
               Contact form submissions will appear here after visitors send messages.
             </p>
-          </div>
-        )}
-      </AdminCard>
-    </div>
+            </div>
+          )}
+        </aside>
+      </div>
+    </AdminCard>
   );
+}
+
+function messagePreview(value: string, limit = 88) {
+  const clean = value.replace(/\s+/g, " ").trim();
+  return clean.length > limit ? `${clean.slice(0, limit).trim()}...` : clean;
 }
 
 const bookingStatusOptions: BookingInquiryStatus[] = [
